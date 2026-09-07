@@ -2,7 +2,8 @@ from app.core.logging import get_logger
 
 logger = get_logger("app.services.rag_service")
 
-class RAGService():
+
+class RAGService:
     def __init__(self):
         self._model = None
 
@@ -15,5 +16,5 @@ class RAGService():
         return {
             "query": query,
             "context": context,
-            "response": f"Processed query '{query}' with context '{context}'"
+            "response": f"Processed query '{query}' with context '{context}'",
         }

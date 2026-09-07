@@ -4,13 +4,12 @@ adhering strictly to a single schema, including the request_id so clients
 can report errors back for easier log tracing.
 """
 
-from fastapi import FastAPI, Request, status
-from fastapi.responses import JSONResponse
-from fastapi.exceptions import RequestValidationError
-
 from app.core.exceptions import PipelineError
 from app.core.logging import get_logger, request_id_ctx
 from app.core.metrics import PIPELINE_ERRORS
+from fastapi import FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 
 logger = get_logger("app.error")
 
@@ -39,7 +38,9 @@ def register_exception_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(RequestValidationError)
     async def validation_error_handler(request: Request, exc: RequestValidationError):
-        PIPELINE_ERRORS.labels(error_code=exc.error_code, stage=exc.stage or "unknown").inc()
+        PIPELINE_ERRORS.labels(
+            error_code=exc.error_code, stage=exc.stage or "unknown"
+        ).inc()
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             content=_error_body("VALIDATION_ERROR", str(exc.errors())),

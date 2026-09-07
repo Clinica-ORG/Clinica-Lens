@@ -4,27 +4,28 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
-from prometheus_fastapi_instrumentator import Instrumentator
-
-from app.services.rag_service import RAGService
 from app.api.v1.routers import api_router
-from app.middleware.request_tracing import RequestTracingMiddleware
-from app.middleware.logging_middleware import AccessLogMiddleware
-from app.middleware.error_handler import register_exception_handlers
 from app.core.config import get_settings
-from app.core.logging import setup_logging, get_logger
-from app import models
-from app.db.database import engine, Base, get_db
+from app.core.logging import get_logger, setup_logging
+from app.db.database import Base, engine
+from app.middleware.error_handler import register_exception_handlers
+from app.middleware.logging_middleware import AccessLogMiddleware
+from app.middleware.request_tracing import RequestTracingMiddleware
+from app.services.rag_service import RAGService
 
 setup_logging()
 logger = get_logger(__name__)
 settings = get_settings()
 
-limiter = Limiter(key_func=get_remote_address, default_limits=[settings.RATE_LIMIT_DEFAULT])
+limiter = Limiter(
+    key_func=get_remote_address, default_limits=[settings.RATE_LIMIT_DEFAULT]
+)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -33,7 +34,7 @@ async def lifespan(app: FastAPI):
 
     app.state.rag_service = RAGService()
 
-    #app.state.inference_limiter = anyio.CapacityLimiter(settings.INFERENCE_MAX_WORKERS)
+    # app.state.inference_limiter = anyio.CapacityLimiter(settings.INFERENCE_MAX_WORKERS)
     app.state.inference_executor = ThreadPoolExecutor(
         max_workers=settings.INFERENCE_MAX_WORKERS, thread_name_prefix="inference"
     )
@@ -50,9 +51,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.APP_NAME,
         version=settings.APP_VERSION,
-        description=(
-            "API queries LLM"
-        ),
+        description=("API queries LLM"),
         docs_url="/docs",
         redoc_url="/redoc",
         lifespan=lifespan,
@@ -88,7 +87,9 @@ def create_app() -> FastAPI:
     app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 
     # --- Metrics ---
-    Instrumentator().instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
+    Instrumentator().instrument(app).expose(
+        app, endpoint="/metrics", include_in_schema=False
+    )
 
     return app
 

@@ -6,6 +6,7 @@ and contextual logging (identifying which stage failed).
 
 class PipelineError(Exception):
     """Base class for errors in extraction pipeline."""
+
     error_code: str = "PIPELINE_ERROR"
     status_code: int = 500
 
@@ -22,5 +23,6 @@ class InferenceTimeoutError(PipelineError):
 
 class ServiceBusyError(PipelineError):
     """Queue is full - refuse request."""
+
     error_code = "SERVICE_BUSY"
     status_code = 503
