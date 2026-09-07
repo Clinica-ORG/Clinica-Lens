@@ -5,17 +5,20 @@ Structured logging for production.
 (TimedRotatingFileHandler, when="midnight", backupCount=LOG_RETENTION_DAYS)
 -> Logs older than N days are automatically deleted, N can be modified via .env (LOG_RETENTION_DAYS).
 """
+
+import contextvars
+import json
 import logging
 import logging.handlers
-import sys
-import json
-import contextvars
 import os
+import sys
 from datetime import datetime, timezone
 
 from app.core.config import get_settings
 
-request_id_ctx: contextvars.ContextVar[str] = contextvars.ContextVar("request_id", default="-")
+request_id_ctx: contextvars.ContextVar[str] = contextvars.ContextVar(
+    "request_id", default="-"
+)
 
 
 class JsonFormatter(logging.Formatter):

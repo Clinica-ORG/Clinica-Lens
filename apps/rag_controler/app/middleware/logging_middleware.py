@@ -1,11 +1,12 @@
 """
 Middleware log access: method, path, status_code, latency_ms.
 """
+
 import time
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request
 
 from app.core.logging import get_logger
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
 
 logger = get_logger("app.access")
 

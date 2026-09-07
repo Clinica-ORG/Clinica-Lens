@@ -8,8 +8,10 @@ DATABASE_URL = os.getenv(
     "postgresql+psycopg2://postgres:postgrespassword@localhost:5432/clinical_patients",
 )
 
+
 class Base(DeclarativeBase):
     pass
+
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

@@ -1,7 +1,8 @@
 """
 Prometheus metrics for the RAG pipeline.
 """
-from prometheus_client import Counter, Histogram, Gauge
+
+from prometheus_client import Counter, Gauge, Histogram
 
 PIPELINE_STAGE_DURATION = Histogram(
     "rag_pipeline_stage_duration_seconds",

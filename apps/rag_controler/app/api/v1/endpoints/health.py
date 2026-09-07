@@ -1,15 +1,15 @@
-from fastapi import APIRouter, Request, Response, status
-
 from app.core.config import get_settings
-from app.schemas.health_schemas import (
-    HealthResponse,
-    LivenessResponse
-)
+from app.schemas.health_schemas import HealthResponse, LivenessResponse
+from fastapi import APIRouter
 
 router = APIRouter()
 
 
-@router.get("/health", response_model=HealthResponse, summary="Quick health check (legacy compatibility)")
+@router.get(
+    "/health",
+    response_model=HealthResponse,
+    summary="Quick health check (legacy compatibility)",
+)
 async def health():
     settings = get_settings()
     return HealthResponse(status="ok", version=settings.APP_VERSION)
