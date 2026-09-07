@@ -29,7 +29,6 @@ class Settings(BaseSettings):
     API_V1_PREFIX: str = "/api/v1"
     SERVICE_NAME: str = "rag-service"
     # Middleware
-    RATE_LIMIT_DEFAULT: int = 20
     INFERENCE_MAX_WORKERS: int = 1
     INFERENCE_MAX_QUEUE: int = 10
     RATE_LIMIT_EXTRACT: str = "10/minute"

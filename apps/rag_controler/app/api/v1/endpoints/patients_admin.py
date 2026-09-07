@@ -1,4 +1,6 @@
 # routers/patients_admin.py
+from typing import Annotated
+
 from app.db.database import get_db
 from app.models.department_model import Department
 from app.models.patient_model import Patient
@@ -7,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/patients", tags=["patients"])
+DbSession = Annotated[Session, Depends(get_db)]
 
 """Exp sync data
 {
@@ -20,7 +23,7 @@ router = APIRouter(prefix="/patients", tags=["patients"])
 
 
 @router.post("/", response_model=PatientOut)
-def create_patient(payload: PatientCreate, db: Session = Depends(get_db)):
+def create_patient(payload: PatientCreate, db: DbSession):
     department = None
     if payload.department:
         department = (
@@ -45,12 +48,12 @@ def create_patient(payload: PatientCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/", response_model=list[PatientOut])
-def list_patients(db: Session = Depends(get_db)):
+def list_patients(db: DbSession):
     return db.query(Patient).all()
 
 
 @router.get("/{patient_id}", response_model=PatientOut)
-def get_patient(patient_id: str, db: Session = Depends(get_db)):
+def get_patient(patient_id: str, db: DbSession):
     patient = db.query(Patient).filter(Patient.id == patient_id).first()
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
@@ -58,9 +61,7 @@ def get_patient(patient_id: str, db: Session = Depends(get_db)):
 
 
 @router.put("/{patient_id}", response_model=PatientOut)
-def update_patient(
-    patient_id: str, payload: PatientCreate, db: Session = Depends(get_db)
-):
+def update_patient(patient_id: str, payload: PatientCreate, db: DbSession):
     patient = db.query(Patient).filter(Patient.id == patient_id).first()
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
@@ -72,7 +73,7 @@ def update_patient(
 
 
 @router.delete("/{patient_id}")
-def delete_patient(patient_id: str, db: Session = Depends(get_db)):
+def delete_patient(patient_id: str, db: DbSession):
     patient = db.query(Patient).filter(Patient.id == patient_id).first()
     if not patient:
         return None

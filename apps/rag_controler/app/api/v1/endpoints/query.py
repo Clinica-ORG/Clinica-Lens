@@ -20,7 +20,6 @@ logger = get_logger(__name__)
 async def query(
     request: Request,
 ) -> RAGResponse:
-    settings = get_settings()
     request_id = getattr(request.state, "request_id", None)
     res = RAGResponse(reply="test", request_id=request_id)
     return res
