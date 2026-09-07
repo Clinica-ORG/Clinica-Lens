@@ -48,7 +48,13 @@ def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(Exception)
     async def unhandled_exception_handler(request: Request, exc: Exception):
         logger.exception("Unhandled exception")
-        PIPELINE_ERRORS.labels(error_code=exc.error_code, stage=exc.stage or "unknown").inc()
+
+        # Safely extract attributes
+        error_code = getattr(exc, "error_code", "INTERNAL_ERROR")
+        stage = getattr(exc, "stage", None) or "unknown"
+
+        PIPELINE_ERRORS.labels(error_code=str(error_code), stage=str(stage)).inc()
+
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content=_error_body("INTERNAL_SERVER_ERROR", "Unknown error occurred"),

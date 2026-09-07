@@ -17,6 +17,8 @@ from app.middleware.logging_middleware import AccessLogMiddleware
 from app.middleware.error_handler import register_exception_handlers
 from app.core.config import get_settings
 from app.core.logging import setup_logging, get_logger
+from app import models
+from app.db.database import engine, Base, get_db
 
 setup_logging()
 logger = get_logger(__name__)
@@ -26,6 +28,9 @@ limiter = Limiter(key_func=get_remote_address, default_limits=[settings.RATE_LIM
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # init db
+    Base.metadata.create_all(bind=engine)
+
     app.state.rag_service = RAGService()
 
     #app.state.inference_limiter = anyio.CapacityLimiter(settings.INFERENCE_MAX_WORKERS)

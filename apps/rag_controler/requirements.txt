@@ -7,6 +7,9 @@ python-multipart
 # Data Validation
 pydantic
 pydantic-settings
+# Database
+sqlalchemy
+psycopg2-binary
 # Observability
 prometheus-client
 prometheus-fastapi-instrumentator
