@@ -1,5 +1,6 @@
 services:
   postgres:
+    # port being used -> check sudo lsof -i :5432
     image: postgres:16-alpine
     container_name: clinical-rag-postgres
     ports:

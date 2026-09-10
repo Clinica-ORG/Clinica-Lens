@@ -4,12 +4,13 @@ adhering strictly to a single schema, including the request_id so clients
 can report errors back for easier log tracing.
 """
 
-from app.core.exceptions import PipelineError
-from app.core.logging import get_logger, request_id_ctx
-from app.core.metrics import PIPELINE_ERRORS
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+
+from app.core.exceptions import PipelineError
+from app.core.logging import get_logger, request_id_ctx
+from app.core.metrics import PIPELINE_ERRORS
 
 logger = get_logger("app.error")
 

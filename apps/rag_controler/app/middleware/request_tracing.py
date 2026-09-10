@@ -6,9 +6,10 @@ in every log line, and returns it in the response header.
 
 import uuid
 
-from app.core.logging import request_id_ctx
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
+
+from app.core.logging import request_id_ctx
 
 REQUEST_ID_HEADER = "X-Request-ID"
 

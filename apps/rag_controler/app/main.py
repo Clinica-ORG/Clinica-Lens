@@ -29,7 +29,8 @@ limiter = Limiter(
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # init db
+    # init db, remove drop_all if use alembic and real production database
+    Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
 
     app.state.rag_service = RAGService()

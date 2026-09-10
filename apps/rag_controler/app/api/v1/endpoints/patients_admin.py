@@ -1,14 +1,18 @@
 # routers/patients_admin.py
 from typing import Annotated
 
-from app.db.database import get_db
-from app.models.department_model import Department
-from app.models.patient_model import Patient
-from app.schemas.patient_schemas import PatientCreate, PatientOut
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-router = APIRouter(prefix="/patients", tags=["patients"])
+from app.db.database import get_db
+from app.models.department_model import Department
+from app.models.patient_model import Patient, PatientStatus
+from app.schemas.patient_schemas import PatientCreate, PatientOut
+
+router = APIRouter(
+    prefix="/patients",
+    tags=["Patients"],
+)
 DbSession = Annotated[Session, Depends(get_db)]
 
 """Exp sync data
@@ -24,6 +28,14 @@ DbSession = Annotated[Session, Depends(get_db)]
 
 @router.post("/", response_model=PatientOut)
 def create_patient(payload: PatientCreate, db: DbSession):
+    # Check for existing MRN before attempting insertion
+    existing_patient = db.query(Patient).filter(Patient.mrn == payload.mrn).first()
+    if existing_patient:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Patient with MRN '{payload.mrn}' already exists.",
+        )
+
     department = None
     if payload.department:
         department = (
@@ -35,13 +47,35 @@ def create_patient(payload: PatientCreate, db: DbSession):
             db.flush()
 
     patient = Patient(
+        mrn=payload.mrn,
         name=payload.name,
         dob=payload.dob,
         sex=payload.sex,
-        raw_note=payload.raw_note,
         department_id=department.id if department else None,
+        status="active",
     )
+
     db.add(patient)
+    db.flush()
+
+    initial_status = PatientStatus(
+        # link key to patient
+        patient_id=patient.id,
+        recorded_at=payload.initial_status.recorded_at,
+        acuity_level=payload.initial_status.acuity_level,
+        raw_note=payload.initial_status.raw_note,
+        blood_pressure=payload.initial_status.vitals.blood_pressure
+        if payload.initial_status.vitals
+        else None,
+        heart_rate=payload.initial_status.vitals.heart_rate
+        if payload.initial_status.vitals
+        else None,
+        temperature_c=payload.initial_status.vitals.temperature_c
+        if payload.initial_status.vitals
+        else None,
+        department_data=payload.initial_status.department_data,
+    )
+    db.add(initial_status)
     db.commit()
     db.refresh(patient)
     return patient
@@ -65,8 +99,46 @@ def update_patient(patient_id: str, payload: PatientCreate, db: DbSession):
     patient = db.query(Patient).filter(Patient.id == patient_id).first()
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
-    for key, value in payload.model_dump().items():
+
+    # exclude orm fields and only update the fields that are present in the payload
+    update_data = payload.model_dump(
+        exclude_unset=True, exclude={"department", "initial_status"}
+    )
+    for key, value in update_data.items():
         setattr(patient, key, value)
+
+    # Department
+    if payload.department:
+        department = (
+            db.query(Department).filter(Department.name == payload.department).first()
+        )
+        if not department:
+            department = Department(name=payload.department)
+            db.add(department)
+            db.flush()
+        patient.department_id = department.id
+
+    # status
+    if payload.initial_status:
+        status_schema = payload.initial_status
+        new_status = PatientStatus(
+            patient_id=patient.id,
+            recorded_at=status_schema.recorded_at,
+            acuity_level=status_schema.acuity_level,
+            raw_note=status_schema.raw_note,
+            blood_pressure=status_schema.vitals.blood_pressure
+            if status_schema.vitals
+            else None,
+            heart_rate=status_schema.vitals.heart_rate
+            if status_schema.vitals
+            else None,
+            temperature_c=status_schema.vitals.temperature_c
+            if status_schema.vitals
+            else None,
+            department_data=status_schema.department_data,
+        )
+        db.add(new_status)
+
     db.commit()
     db.refresh(patient)
     return patient
