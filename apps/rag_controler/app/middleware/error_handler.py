@@ -25,7 +25,6 @@ def _error_body(error_code: str, message: str, stage: str | None = None) -> dict
 
 
 def register_exception_handlers(app: FastAPI) -> None:
-
     @app.exception_handler(PipelineError)
     async def pipeline_error_handler(request: Request, exc: PipelineError):
         error_code = getattr(exc, "error_code", exc.__class__.__name__)
