@@ -4,12 +4,13 @@ adhering strictly to a single schema, including the request_id so clients
 can report errors back for easier log tracing.
 """
 
-from app.core.exceptions import PipelineError
-from app.core.logging import get_logger, request_id_ctx
-from app.core.metrics import PIPELINE_ERRORS
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+
+from app.core.exceptions import PipelineError
+from app.core.logging import get_logger, request_id_ctx
+from app.core.metrics import PIPELINE_ERRORS
 
 logger = get_logger("app.error")
 
@@ -24,7 +25,6 @@ def _error_body(error_code: str, message: str, stage: str | None = None) -> dict
 
 
 def register_exception_handlers(app: FastAPI) -> None:
-
     @app.exception_handler(PipelineError)
     async def pipeline_error_handler(request: Request, exc: PipelineError):
         error_code = getattr(exc, "error_code", exc.__class__.__name__)
