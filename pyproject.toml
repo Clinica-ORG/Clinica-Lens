@@ -1,0 +1,5 @@
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+# Exclude auto-generated Alembic files from linting
+extend-exclude = ["alembic"]
