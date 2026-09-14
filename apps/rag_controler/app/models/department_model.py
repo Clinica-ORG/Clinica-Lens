@@ -4,7 +4,7 @@ from sqlalchemy import Column, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
-from app.db.database import Base
+from ..db.database import Base
 
 
 class Department(Base):
