@@ -10,8 +10,9 @@ SPLITTER_REG = {
     "recursive": RecursiveCharacterTextSplitter,
     "character": CharacterTextSplitter,
     "token": TokenTextSplitter,
-    "header": MarkdownHeaderTextSplitter
+    "header": MarkdownHeaderTextSplitter,
 }
+
 
 class TextSplitter:
     def __init__(self, splitter, **splitter_params):
@@ -19,9 +20,16 @@ class TextSplitter:
         if splitter == "header":
             headers_to_split_on = splitter_params.pop(
                 "headers_to_split_on",
-                [("#", "Header 1"), ("##", "Header 2"), ("###", "Header 3"), ("####", "Header 4")]
+                [
+                    ("#", "Header 1"),
+                    ("##", "Header 2"),
+                    ("###", "Header 3"),
+                    ("####", "Header 4"),
+                ],
             )
-            self.splitter = cls(headers_to_split_on=headers_to_split_on, **splitter_params)
+            self.splitter = cls(
+                headers_to_split_on=headers_to_split_on, **splitter_params
+            )
         else:
             self.splitter = cls(**splitter_params)
 

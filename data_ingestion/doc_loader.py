@@ -1,5 +1,3 @@
-from functools import lru_cache
-
 from docling.datamodel.pipeline_options import (
     AcceleratorDevice,
     AcceleratorOptions,
@@ -17,6 +15,7 @@ from docling.datamodel.pipeline_options_vlm_model import (
 from langchain_community.document_loaders import PyPDFLoader
 import pymupdf4llm
 import pymupdf
+
 
 class VlmTocExtractor:
     """Wraps a Docling VLM pipeline for OCR-ing a single ToC page to markdown.
@@ -48,7 +47,7 @@ class VlmTocExtractor:
                 temperature=0.0,
                 load_in_8bit=False,
                 quantized=False,
-                torch_dtype='bfloat16',
+                torch_dtype="bfloat16",
                 max_new_tokens=2048,
                 use_kv_cache=True,
             )
@@ -63,9 +62,14 @@ class VlmTocExtractor:
             }
         )
 
-    def extract_page_markdown(self, file_path: str, page_start_no: int, page_end_no: int) -> str:
-        result = self._converter.convert(file_path, page_range=(page_start_no, page_end_no))
+    def extract_page_markdown(
+        self, file_path: str, page_start_no: int, page_end_no: int
+    ) -> str:
+        result = self._converter.convert(
+            file_path, page_range=(page_start_no, page_end_no)
+        )
         return result.document.export_to_markdown()
+
 
 class DocLoader:
     def __init__(self):
@@ -82,10 +86,14 @@ class DocLoader:
     def to_markdown(self, file_path: str, page_chunks: bool) -> str | list[dict]:
         return pymupdf4llm.to_markdown(file_path, page_chunks=page_chunks)
 
-    def get_toc(self, file_path: str, use_vlm: bool = False, toc_page: int | None = None) -> list[list]:
+    def get_toc(
+        self, file_path: str, use_vlm: bool = False, toc_page: int | None = None
+    ) -> list[list]:
         if not use_vlm:
             return pymupdf.open(file_path).get_toc()
         if toc_page is None:
             raise ValueError("toc_page is required when use_vlm=True")
         # suppose that the toc is spanned only in 1 page
-        return self._get_vlm_extractor().extract_page_markdown(file_path, toc_page, toc_page)
+        return self._get_vlm_extractor().extract_page_markdown(
+            file_path, toc_page, toc_page
+        )
