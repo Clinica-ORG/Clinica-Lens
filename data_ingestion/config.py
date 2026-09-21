@@ -9,6 +9,7 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+    openai_api_key: str = ""
 
     # --- VLM / ToC extraction ---
     # # https://docling-project.github.io/docling/reference/pipeline_options/#docling.datamodel.pipeline_options.VlmExtractionPipelineOptions

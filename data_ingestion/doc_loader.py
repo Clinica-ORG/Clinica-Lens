@@ -84,7 +84,7 @@ class DocLoader:
         return PyPDFLoader(file_path).load()
 
     def to_markdown(self, file_path: str, page_chunks: bool) -> str | list[dict]:
-        return pymupdf4llm.to_markdown(file_path, page_chunks=page_chunks)
+        return pymupdf4llm.to_markdown(file_path, page_chunks=page_chunks, footer=False, header=False)
 
     def get_toc(
         self, file_path: str, use_vlm: bool = False, toc_page: int | None = None

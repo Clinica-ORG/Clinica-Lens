@@ -10,3 +10,5 @@ dist/
 # logs
 *.log
 *.log*
+# custom
+notebookes/

@@ -102,18 +102,18 @@ def fix_page_header_using_toc(
     concerned_page = [p for p in toc if p[-1].lower() == str(metadata_page_num).lower()]
     d_motif = {pattern: level for level, pattern, _ in concerned_page}
     res = []
-    for l in text.splitlines():
+    for line in text.splitlines():
         # WHO guidelines has mark in the headlines ...
         if "<mark>" in text:
-            l = re.sub(
-                r"^(#+)\s+.*?<mark>(.*?)</mark>\s*", r"\1 \2 ", l, flags=re.MULTILINE
+            line = re.sub(
+                r"^(#+)\s+.*?<mark>(.*?)</mark>\s*", r"\1 \2 ", line, flags=re.MULTILINE
             ).strip()
         for pattern, level in d_motif.items():
-            if pattern in l:
+            if pattern in line:
                 # fix heading
                 replacement = "#" * level + " "
-                l = re.sub(rf"^.*?(?={re.escape(pattern)})", replacement, l)
-        res.append(l)
+                line = re.sub(rf"^.*?(?={re.escape(pattern)})", replacement, line)
+        res.append(line)
     return "\n".join(res)
 
 
