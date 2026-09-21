@@ -1,4 +1,5 @@
 import re
+from langchain_core.documents import Document
 
 
 def is_table_of_contents_page(text_lines: list[str], max_lines_check=5) -> bool:
@@ -62,7 +63,7 @@ def format_table_of_contents(text_lines: list[str]) -> list[list]:
             extracted_section_name, extracted_section_page = has_bold_match
             if not has_bold:
                 has_bold = True
-            toc.append((top_level, extracted_section_name, extracted_section_page))
+            toc.append([top_level, extracted_section_name, extracted_section_page])
         else:
             extract_s_p = section_and_page_compile.findall(string=stripped)
             if extract_s_p and len(extract_s_p[0]) == 2:
@@ -87,7 +88,17 @@ def format_table_of_contents(text_lines: list[str]) -> list[list]:
     return toc
 
 
-def fix_page_header_using_toc(text: str, toc, metadata_page_num) -> str:
+def fix_page_header_using_toc(
+    text: str, toc: list[list], metadata_page_num: int
+) -> str:
+    """
+    args:
+        text: the text in markdown of the page
+        toc: List of lines in ToC, each of them is in format [level, content, page]
+        metadata_page_num: the number of the page to search in toc
+    output:
+        The Markdown text of the page with header corrected by the table of contents
+    """
     concerned_page = [p for p in toc if p[-1].lower() == str(metadata_page_num).lower()]
     d_motif = {pattern: level for level, pattern, _ in concerned_page}
     res = []
@@ -106,27 +117,27 @@ def fix_page_header_using_toc(text: str, toc, metadata_page_num) -> str:
     return "\n".join(res)
 
 
-def fix_doc_header_using_toc(toc: list[tuple], markdown_text, docs, splitter):
+def fix_doc_header_using_toc(
+    toc: list[list], markdown_text: list[str], docs: list[Document]
+) -> str:
     """
     args:
-        toc: List of lines in string, each of them is in format (level, content, page)
-        markdown_text:
-        docs:
-
+        toc: List of lines in ToC, each of them is in format [level, content, page]
+        markdown_text: List of markdown text of each page
+        docs: List of each page as Document
+    output:
+        The Markdown text of the document with header corrected by the table of contents
     """
 
-    section_docs = []
+    res_docs = []
     for page_md, page_pdf in zip(markdown_text, docs):
         metadata_page_num = (
             page_pdf.metadata["page_label"]
             if page_md["metadata"]["page_number"] != page_pdf.metadata["page_label"]
             else page_md["metadata"]["page_number"]
         )
-        page_md["text"] = f"Begin page {metadata_page_num}\n" + page_md["text"]
         page_md_text = fix_page_header_using_toc(
             page_md["text"], toc, metadata_page_num
         )
-        sections = splitter.split_text(page_md_text)
-    for section in sections:
-        section.metadata["page"] = metadata_page_num
-    section_docs.extend(sections)
+        res_docs.append(page_md_text)
+    return "".join(res_docs)

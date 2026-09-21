@@ -16,40 +16,40 @@ from langchain_community.document_loaders import PyPDFLoader
 import pymupdf4llm
 import pymupdf
 
+from config import get_settings
+
 
 class VlmTocExtractor:
-    """Wraps a Docling VLM pipeline for OCR-ing a single ToC page to markdown.
-    Expensive to build (loads the model) — construct once, reuse many times.
-    """
-
     def __init__(
         self,
-        repo_id: str = "jwindle47/chandra-ocr-2-8bit-mlx",
-        prompt: str = (
-            "Convert this page of table of contents to markdown. "
-            "Do not miss any text and only output the bare markdown!"
-        ),
-        device: AcceleratorDevice = AcceleratorDevice.MPS,
+        repo_id: str | None = None,
+        prompt: str | None = None,
+        device: AcceleratorDevice | None = None,
     ):
+        settings = get_settings()
+
+        repo_id = repo_id or settings.vlm_repo_id
+        prompt = prompt or settings.vlm_prompt
+        device = device or AcceleratorDevice(settings.vlm_device)
+
+        inference_framework = InferenceFramework(settings.vlm_inference_framework)
+        response_format = ResponseFormat(settings.vlm_response_format)
         accelerator_options = AcceleratorOptions(device=device)
-        # https://docling-project.github.io/docling/reference/pipeline_options/#docling.datamodel.pipeline_options.VlmExtractionPipelineOptions
-        # "jwindle47/chandra-ocr-2-8bit-mlx"
-        # "datalab-to/chandra-ocr-2"
         pipeline_options = VlmPipelineOptions(
             vlm_options=InlineVlmOptions(
                 repo_id=repo_id,
                 prompt=prompt,
-                response_format=ResponseFormat.MARKDOWN,
-                inference_framework=InferenceFramework.MLX,
+                response_format=response_format,
+                inference_framework=inference_framework,
                 transformers_model_type=TransformersModelType.AUTOMODEL_IMAGETEXTTOTEXT,
                 supported_devices=[device],
-                scale=1.0,
-                temperature=0.0,
+                scale=settings.vlm_scale,
+                temperature=settings.vlm_temperature,
                 load_in_8bit=False,
                 quantized=False,
-                torch_dtype="bfloat16",
-                max_new_tokens=2048,
-                use_kv_cache=True,
+                torch_dtype=settings.vlm_torch_dtype,
+                max_new_tokens=settings.vlm_max_new_tokens,
+                use_kv_cache=settings.vlm_use_kv_cache,
             )
         )
         self._converter = DocumentConverter(
@@ -84,7 +84,9 @@ class DocLoader:
         return PyPDFLoader(file_path).load()
 
     def to_markdown(self, file_path: str, page_chunks: bool) -> str | list[dict]:
-        return pymupdf4llm.to_markdown(file_path, page_chunks=page_chunks)
+        return pymupdf4llm.to_markdown(
+            file_path, page_chunks=page_chunks, footer=False, header=False
+        )
 
     def get_toc(
         self, file_path: str, use_vlm: bool = False, toc_page: int | None = None
