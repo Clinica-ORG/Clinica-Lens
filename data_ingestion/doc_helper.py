@@ -8,6 +8,7 @@ from utils import is_table_of_contents_page, format_table_of_contents
 
 settings = get_settings()
 
+
 class DocumentTitle(BaseModel):
     title: str = Field(description="Title of document")
 
@@ -18,7 +19,8 @@ class DocHelper:
             temperature=0,
             model_name="gpt-4o-mini",
             api_key=settings.openai_api_key,
-            max_tokens=4000)
+            max_tokens=4000,
+        )
 
     @staticmethod
     def get_toc_num_page(docs: list[Document], max_page_check: int = 10) -> int:
@@ -37,17 +39,20 @@ class DocHelper:
     def fix_toc(toc: list[str]) -> list[list]:
         return format_table_of_contents(toc)
 
-    def extract_pdf_title_llm(self, docs: list[Document], max_page_check: int = 1) -> str:
+    def extract_pdf_title_llm(
+        self, docs: list[Document], max_page_check: int = 1
+    ) -> str:
         """Extract the title of the document"""
         content = ""
         for doc in docs[:max_page_check]:
-            content += doc.page_content+"\n"
+            content += doc.page_content + "\n"
 
         title_extraction_prompt = PromptTemplate(
             input_variables=["text"],
-            template="Extract the title of document from the following text:\n\n{text}\n\nTitle of document:"
+            template="Extract the title of document from the following text:\n\n{text}\n\nTitle of document:",
         )
-        title_chain = title_extraction_prompt | self.llm.with_structured_output(DocumentTitle)
+        title_chain = title_extraction_prompt | self.llm.with_structured_output(
+            DocumentTitle
+        )
         title = title_chain.invoke({"text": content}).title
         return title
-
