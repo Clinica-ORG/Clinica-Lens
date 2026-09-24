@@ -3,9 +3,13 @@ from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer
 import uvicorn
 
+from config import get_settings
+
+settings = get_settings()
 app = FastAPI()
 
-model = SentenceTransformer("BAAI/bge-base-en-v1.5")
+# bge v1.5 512 tokens
+model = SentenceTransformer(settings.model_name, device=settings.device)
 
 
 class TextRequest(BaseModel):
