@@ -1,5 +1,32 @@
 from functools import lru_cache
+from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class RecursiveConfig(BaseModel):
+    chunk_size: int = 450
+    chunk_overlap: int = 50
+    separators: list[str] = ["\n\n", "\n", " ", ""]
+
+
+class CharacterConfig(BaseModel):
+    chunk_size: int = 450
+    chunk_overlap: int = 50
+    separator: str = "\n\n"
+
+
+class TokenConfig(BaseModel):
+    chunk_size: int = 450
+    chunk_overlap: int = 50
+
+
+class HeaderConfig(BaseModel):
+    headers_to_split_on: list[tuple[str, str]] = [
+        ("#", "Header 1"),
+        ("##", "Header 2"),
+        ("###", "Header 3"),
+    ]
+    strip_headers: bool = True
 
 
 class Settings(BaseSettings):
@@ -26,6 +53,21 @@ class Settings(BaseSettings):
     vlm_max_new_tokens: int = 2048
     vlm_torch_dtype: str = "bfloat16"
     vlm_use_kv_cache: bool = True
+
+    # splitter
+    strategies: list[str] = ["recursive", "character", "token", "header"]
+
+    recursive: RecursiveConfig = RecursiveConfig()
+    character: CharacterConfig = CharacterConfig()
+    token: TokenConfig = TokenConfig()
+    header: HeaderConfig = HeaderConfig()
+
+    def get_splitter_params(self) -> dict:
+        """get params of splitting strategy."""
+        dict_params = {}
+        for strat in self.strategies:
+            dict_params[strat] = getattr(self, strat).model_dump()
+        return dict_params
 
 
 @lru_cache

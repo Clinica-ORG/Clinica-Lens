@@ -17,5 +17,12 @@ services:
       timeout: 5s
       retries: 5
 
+  embedding-service:
+    build:
+      context: ./apps/embedding
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+
 volumes:
   postgres_data:

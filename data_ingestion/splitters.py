@@ -6,6 +6,10 @@ from langchain_text_splitters import (
     MarkdownHeaderTextSplitter,
 )
 
+from config import get_settings
+
+settings = get_settings()
+
 SPLITTER_REG = {
     "recursive": RecursiveCharacterTextSplitter,
     "character": CharacterTextSplitter,
@@ -15,26 +19,21 @@ SPLITTER_REG = {
 
 
 class TextSplitter:
-    def __init__(self, splitter, **splitter_params):
-        cls = SPLITTER_REG[splitter]
-        if splitter == "header":
-            headers_to_split_on = splitter_params.pop(
-                "headers_to_split_on",
-                [
-                    ("#", "Header 1"),
-                    ("##", "Header 2"),
-                    ("###", "Header 3"),
-                    ("####", "Header 4"),
-                ],
-            )
-            self.splitter = cls(
-                headers_to_split_on=headers_to_split_on, **splitter_params
-            )
-        else:
-            self.splitter = cls(**splitter_params)
+    def __init__(self):
+        self.splitters = {}
+        params_strat = settings.get_splitter_params()
+        for strategy in settings.strategies:
+            cls = SPLITTER_REG[strategy]
+            params = params_strat[strategy]
+            self.splitters[strategy] = cls(**params)
 
-    def split_text(self, text: str) -> list[str]:
-        return self.splitter.split_text(text)
+    def split_text(self, text: str, strategy: str) -> list[str]:
+        if not hasattr(self.splitters[strategy], "split_text"):
+            raise TypeError(f"{strategy} splitter does not have split_text")
+        return self.splitters[strategy].split_text(text)
 
-    def split_doc(self, docs: list[Document]) -> list[Document]:
-        return self.splitter.split_documents(docs)
+    def split_doc(self, docs: list[Document], strategy: str) -> list[Document]:
+        # handle error
+        if not hasattr(self.splitters[strategy], "split_documents"):
+            raise TypeError(f"{strategy} splitter does not have split_documents")
+        return self.splitters[strategy].split_documents(docs)
