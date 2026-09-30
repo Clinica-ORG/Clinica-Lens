@@ -106,7 +106,10 @@ def fix_page_header_using_toc(
         # WHO guidelines has mark in the headlines ...
         if "<mark>" in text:
             line = re.sub(
-                r"^(#+)\s+.*?<mark>(.*?)</mark>\s*", r"\1 \2 ", line, flags=re.MULTILINE
+                r"^(#+)\s+(.*?)\s*<mark>(.*?)</mark>\s*(.*)$",
+                r"\1 \3 \2 \4",
+                line,
+                flags=re.MULTILINE,
             ).strip()
         for pattern, level in d_motif.items():
             if pattern in line:

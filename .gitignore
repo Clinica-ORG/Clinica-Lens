@@ -12,3 +12,5 @@ dist/
 *.log*
 # custom
 notebookes/
+*.pkl
+*.ipynb
