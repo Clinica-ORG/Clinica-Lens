@@ -1,0 +1,20 @@
+{
+    "Records": [
+        {
+            "messageId": "8a0ee835-97ec-4c53-a2f9-24171708f415",
+            "receiptHandle": "AQEBIdaHOVuXwGpawcrWdQy95cQusBmpIQU+8PtAK2VmtmnFzNESoj9rEbgIaZGFW71YyZbkI8OIkoGKwich0iXHYtxg4HsKy/kkBjWC2Rjs6+/OLhsuH8OokC11DvdJZ8Yk9gxEqGp0bt793p8WvxoDpS5aeeI+fnb+C9lbspNeK6sANJBZMbvZDmaHe/pewWUxtItBj9gxUNcOrufiElv0RyK8KaO/V5fp3XB1aspKGJXAkkTCpHGTJD0nHL2vxRePCYNF2LEqT0lxabW/4xYQlL7okgGAGmzbcGbivf+wvjAiW/cwvZCRFhzzf/VwGosQ3n9fOp++lidhIfuB632GwpM0BcP67MWF3JV0YrLCnHJ/MB1KmWBtsPhN5sTeKqnKddiQZsKEWE5bX2Tb8HUBCw==",
+            "body": "{\"Records\":[{\"eventVersion\":\"2.6\",\"eventSource\":\"aws:s3\",\"awsRegion\":\"eu-west-3\",\"eventTime\":\"2026-10-13T13:20:01.721Z\",\"eventName\":\"ObjectCreated:Put\",\"userIdentity\":{\"principalId\":\"AMJL5HGR9QEQG\"},\"requestParameters\":{\"sourceIPAddress\":\"176.132.160.226\"},\"responseElements\":{\"x-amz-request-id\":\"C8ZHTKCCJ20TS0MS\",\"x-amz-id-2\":\"1OFtIu1M/mySYArAP2Plr1WgWH/gOXGyPVEx4rSXJPjXGgmbK/n3bO+b+aBK21G495eCvhA1yc/h4+V8f0SzZqOCgTv/kSASYyexkbZfoJ0=\"},\"s3\":{\"s3SchemaVersion\":\"1.0\",\"configurationId\":\"4f1170f9-8e6e-4b25-8045-d53f41401fc2\",\"bucket\":{\"name\":\"aws-s3-clinical-lens-423051206837-eu-west-3-an\",\"ownerIdentity\":{\"principalId\":\"AMJL5HGR9QEQG\"},\"arn\":\"arn:aws:s3:::aws-s3-clinical-lens-423051206837-eu-west-3-an\"},\"object\":{\"key\":\"documents/WHO/diabete_pregnancy-eng.pdf\",\"size\":847688,\"eTag\":\"ea44068ba5e72c8ce3442f4853e2d677\",\"sequencer\":\"006ACE3001ACE5C433\"}}}]}",
+            "attributes": {
+                "ApproximateReceiveCount": "1",
+                "SentTimestamp": "1791897602923",
+                "SenderId": "AROASUK5KQXDOEXHSWLH7:S3-PROD-END",
+                "ApproximateFirstReceiveTimestamp": "1791897602924"
+            },
+            "messageAttributes": {},
+            "md5OfBody": "803dc57e69c2b61d0b62fa411d341907",
+            "eventSource": "aws:sqs",
+            "eventSourceARN": "arn:aws:sqs:eu-west-3:423051206837:sqs-rag-ingestion",
+            "awsRegion": "eu-west-3"
+        }
+    ]
+}

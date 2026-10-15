@@ -1,5 +1,11 @@
 import re
+from pydantic import BaseModel, Field
 from langchain_core.documents import Document
+from langchain_core.prompts import PromptTemplate
+
+
+class DocumentTitle(BaseModel):
+    title: str = Field(description="Title of document")
 
 
 def is_table_of_contents_page(text_lines: list[str], max_lines_check=5) -> bool:
@@ -47,9 +53,9 @@ def format_table_of_contents(text_lines: list[str]) -> list[list]:
     has_bold = False
     top_level = 1
     for line in text_lines:
-        stripped = line.replace(
-            "|", ""
-        ).strip()  # remove |, VLM often put in table form
+        stripped = (
+            line.replace("|", "").replace("<b>", "").replace("</b>", "").strip()
+        )  # remove |, VLM often put in table form
         # if empty line -> skip
         if stripped == "":
             continue
@@ -144,3 +150,42 @@ def fix_doc_header_using_toc(
         )
         res_docs.append(page_md_text)
     return "".join(res_docs)
+
+
+def get_toc_num_page(docs: list[Document], max_page_check: int = 10) -> int:
+    """Extract the index of the page contains the Table of Contents (1-indexed)"""
+    toc_page_num = None
+    for i, doc in enumerate(docs):
+        if is_table_of_contents_page(
+            text_lines=doc.page_content.splitlines(), max_lines_check=5
+        ):
+            toc_page_num = i + 1  # 1-indexed
+        if toc_page_num is not None or i >= max_page_check:
+            break
+    return toc_page_num
+
+
+def fix_toc(toc: list[str]) -> list[list]:
+    return format_table_of_contents(toc)
+
+
+def extract_pdf_title_llm(llm, docs: list[Document], max_page_check: int = 5) -> str:
+    """Extract the title of the document"""
+    content = ""
+    for doc in docs[:max_page_check]:
+        content += doc.page_content + "\n"
+
+    title_extraction_prompt = PromptTemplate(
+        input_variables=["text"],
+        template="Extract the title of document from the following text:\n\n{text}\n\nTitle of document:",
+    )
+    title_chain = title_extraction_prompt | llm.with_structured_output(DocumentTitle)
+    title = title_chain.invoke({"text": content}).title
+    return title
+
+
+def add_metadata_to_docs(metadata: dict, docs: list[Document]) -> list[Document]:
+    """Add the title of the document to the metadata of each page"""
+    for doc in docs:
+        doc.metadata.update(metadata)
+    return docs
