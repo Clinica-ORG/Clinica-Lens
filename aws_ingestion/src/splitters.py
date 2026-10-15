@@ -1,3 +1,5 @@
+from functools import lru_cache
+
 from langchain_core.documents import Document
 from langchain_text_splitters import (
     CharacterTextSplitter,
@@ -32,8 +34,15 @@ class TextSplitter:
             raise TypeError(f"{strategy} splitter does not have split_text")
         return self.splitters[strategy].split_text(text)
 
-    def split_doc(self, docs: list[Document], strategy: str) -> list[Document]:
+    def split_documents(
+        self, documents: list[Document], strategy: str
+    ) -> list[Document]:
         # handle error
         if not hasattr(self.splitters[strategy], "split_documents"):
             raise TypeError(f"{strategy} splitter does not have split_documents")
-        return self.splitters[strategy].split_documents(docs)
+        return self.splitters[strategy].split_documents(documents)
+
+
+@lru_cache
+def get_splitter() -> TextSplitter:
+    return TextSplitter()

@@ -1,0 +1,20 @@
+{
+    "Records": [
+        {
+            "messageId": "7b38d579-4c51-4e1f-969d-40c4a8e95b7e",
+            "receiptHandle": "AQEB2dOR9OO9v6K7DUmpBQwfW6MoKTZlxb9gEH+9a/7p4kGX3T9YhtdgaxqVvndU4N6/yFi8JkEtpuaxCSpfHLdanaFSAK6Sg4vW9tgsiw3Yqqic579Voy2Key85+jkUkWATFCvHxtlA0QZI51E/YnXwKhyJlxFX1Z8ZjAvRm76d1GZ7Mhg5uqMCWOh/nx//lcdsrpXsOJgHCC2qSccBIrl+9P77Bg8uyXuqk1l78kb2MmyZFU+8OuFirdPjwKHU/D7UDdZcf+CSryX523/qNe9zzkWhuSSE1wzuNTsPoCpzhkQWMR59F89RCtsU775OwMPLa5kUXbrnj/2shcS903KC+aMNm3Q+5pVUWOFjllwvxlFdPSQwmS+Ra5SYViDtSpz7WT8b+zReZRZHjWRxUQ4nIA==",
+            "body": "{\"Records\":[{\"eventVersion\":\"2.6\",\"eventSource\":\"aws:s3\",\"awsRegion\":\"eu-west-3\",\"eventTime\":\"2026-10-15T12:54:59.738Z\",\"eventName\":\"ObjectRemoved:Delete\",\"userIdentity\":{\"principalId\":\"AMJL5HGR9QEQG\"},\"requestParameters\":{\"sourceIPAddress\":\"176.132.160.226\"},\"responseElements\":{\"x-amz-request-id\":\"P7S98M5FWANVB4S8\",\"x-amz-id-2\":\"lpZbURag6h9r0ChgdbOKv0Y/g5QuiDTKhFoV33UBEVwyQGMDvEHP75qmL2727nwo48Ez1Uy2JNMYILvMapE36qtz/i1rTSt4hyVCXbbr3uM=\"},\"s3\":{\"s3SchemaVersion\":\"1.0\",\"configurationId\":\"4f1170f9-8e6e-4b25-8045-d53f41401fc2\",\"bucket\":{\"name\":\"aws-s3-clinical-lens-423051206837-eu-west-3-an\",\"ownerIdentity\":{\"principalId\":\"AMJL5HGR9QEQG\"},\"arn\":\"arn:aws:s3:::aws-s3-clinical-lens-423051206837-eu-west-3-an\"},\"object\":{\"key\":\"documents/WHO/diabete_pregnancy-eng.pdf\",\"sequencer\":\"006AD0CD23B731AA8E\"}}}]}",
+            "attributes": {
+                "ApproximateReceiveCount": "1",
+                "SentTimestamp": "1792068900657",
+                "SenderId": "AROASUK5KQXDOEXHSWLH7:S3-PROD-END",
+                "ApproximateFirstReceiveTimestamp": "1792068900663"
+            },
+            "messageAttributes": {},
+            "md5OfBody": "5191ae3c818f9a909a48f23ba5a1d3bf",
+            "eventSource": "aws:sqs",
+            "eventSourceARN": "arn:aws:sqs:eu-west-3:423051206837:sqs-rag-ingestion",
+            "awsRegion": "eu-west-3"
+        }
+    ]
+}

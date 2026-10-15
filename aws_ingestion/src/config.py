@@ -1,11 +1,12 @@
 from functools import lru_cache
+from typing import Literal
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class RecursiveConfig(BaseModel):
-    chunk_size: int = 450
-    chunk_overlap: int = 50
+    chunk_size: int = 1000
+    chunk_overlap: int = 100
     separators: list[str] = ["\n\n", "\n", " ", ""]
 
 
@@ -31,28 +32,26 @@ class HeaderConfig(BaseModel):
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_prefix="CHUNK_",
+        env_prefix="INGEST_",
         env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore",
     )
-    openai_api_key: str = ""
-
-    # --- VLM / ToC extraction ---
-    # # https://docling-project.github.io/docling/reference/pipeline_options/#docling.datamodel.pipeline_options.VlmExtractionPipelineOptions
-    vlm_repo_id: str = "jwindle47/chandra-ocr-2-8bit-mlx"  # "datalab-to/chandra-ocr-2"
-    vlm_prompt: str = (
-        "Convert this page of table of contents to markdown. "
-        "Do not miss any text and only output the bare markdown!"
-    )
-    vlm_device: str = "mps"  # "mps" | "cuda" | "cpu" | "auto"
-    vlm_inference_framework: str = "mlx"  # "mlx" | "transformers" | "vllm"
-    vlm_response_format: str = "markdown"
-    vlm_scale: float = 1.0
-    vlm_temperature: float = 0.0
-    vlm_max_new_tokens: int = 2048
-    vlm_torch_dtype: str = "bfloat16"
-    vlm_use_kv_cache: bool = True
+    # aws
+    aws_region: str = "eu-west-3"
+    # datalab
+    datalab_api_key_secret_name: str = "/clinica-lens/datalab-api-key"
+    # OpenAI
+    openai_api_key_secret_name: str = "/clinica-lens/openai-api-key"
+    openai_emb_model_name: Literal[
+        "text-embedding-3-small", "text-embedding-3-large"
+    ] = "text-embedding-3-small"
+    openai_llm_model_name: Literal["gpt-4o-mini", "gpt-4o"] = "gpt-4o-mini"
+    # vector db
+    vectordb_api_key_secret_name: str = "/clinica-lens/qdrant-api-key"
+    vectordb_endpoint: str = "https://ef914b8a-6ca1-4294-ba19-1b156e3ce8d2.eu-central-1-0.aws.cloud.qdrant.io"
+    # doc processing
+    vlm_toc: bool = True
 
     # splitter
     strategies: list[str] = ["recursive", "character", "token", "header"]
