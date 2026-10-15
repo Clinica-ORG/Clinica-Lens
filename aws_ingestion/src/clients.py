@@ -164,13 +164,9 @@ class VectorDBClient:
             payload (list[dict]): A list of metadata dictionaries corresponding to each vector.
             ids (list[str]): A list of unique identifiers for each vector.
         """
-        self.client.upload_collection(
+        self.client.upsert(
             collection_name=self.kwargs["collection_name"],
-            vectors=vectors,
-            payload=payload,
-            ids=ids,
-            parallel=4,
-            max_retries=3,
+            points=models.Batch(ids=ids, payloads=payload, vectors=vectors),
         )
 
     def delete_points(self, key: str) -> None:

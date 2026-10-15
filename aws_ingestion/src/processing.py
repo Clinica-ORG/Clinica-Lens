@@ -115,9 +115,5 @@ def remove_pdf(bucket: str, key: str) -> None:
         bucket (str): name of s3 bucket
         key (str): key of the file in s3 bucket
     """
-    logging.info(f"Downloading s3://{bucket}/{key}")
-    local_file_path = f"/tmp/{key.split('/')[-1]}"
-    s3.download_file(
-        bucket_name=bucket, object_key=key, local_file_path=local_file_path
-    )
+    logging.info(f"Deleting vectors for s3://{bucket}/{key} in VectorDB")
     vectordb_client.delete_points(key=key)
