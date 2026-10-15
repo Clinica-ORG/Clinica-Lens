@@ -1,21 +1,21 @@
 # Data ingestion pipeline
 ## Description
-The data ingestion pipeline is orchestrated on AWS. The documents are stored in s3, each event (created, deleted) will trigger
-an event to SQS, which processed by Lambda function. The made choice is decided based on:
-- Ability to scale: with the combination of SQS and Lambda, we could achieve good scaling when large number of documents
-in s3, with control from SQS to prevent rate limit of external services (embedding, vectorDB)
-- We use external services for embedding, vectorDB: the CPU comsumption is low, and there is no GPU usage, which suitable with lambda function
-Downside:
-- Efforts for monitoring: even though there are built-in functionalities (X-ray, Cloudwatch, ect) for monitoring, but we need to put some efforts to pull them to
-our centrailized Grafana dashboard
+The data ingestion pipeline is orchestrated on AWS. The documents are stored in S3, and each event (created, deleted) sends a message to SQS, which is processed by a Lambda function. This choice was made for the following reasons:
+- Ability to scale: with the combination of SQS and Lambda, we can achieve good scaling when there is a large number of documents
+in S3, with control from SQS to prevent rate limiting of external services (embedding, vectorDB).
+- We use external services for embedding and vectorDB: the CPU consumption is low and there is no GPU usage, which is suitable for a Lambda function.
 
-## Pre-requirements
-User role: the user must have needed roles in policy, such as: push to ECR, create/update Lambda function, pass role to Lambda function
+Downsides:
+- Monitoring effort: even though there are built-in functionalities (X-Ray, CloudWatch, etc.) for monitoring, we need to put some effort into pulling them into
+our centralized Grafana dashboard.
+
+## Prerequisites
+User role: the user must have the needed permissions in their policy, such as: push to ECR, create/update a Lambda function, and pass a role to a Lambda function.
 ### SQS
-Go to [Amazon SQS console](https://console.aws.amazon.com/sqs), `Visibility timeout` should longer the `Lambda` timeout, leave every options at defaut and create the queue.
-The only option we concern is Dead-letter queue, which put failed messages back to queue.
-For the policy, we need to add the policy that allows s3 to send message to the queue, follow these 2 steps
-1. Modify policy at creation, add these statement
+Go to the [Amazon SQS console](https://console.aws.amazon.com/sqs). The `Visibility timeout` should be longer than the `Lambda` timeout. Leave every option at default and create the queue.
+The only option we are concerned with is the Dead-letter queue, which receives messages that repeatedly fail processing.
+For the policy, we need to add a statement that allows S3 to send messages to the queue. Follow these 2 steps:
+1. Modify the policy at creation and add this statement:
 ```json
 {
     "Sid": "AllowS3SendMessage",
@@ -35,21 +35,21 @@ For the policy, we need to add the policy that allows s3 to send message to the 
     }
 }
 ```
-2. Add in s3 UI
-Access `Properties` tab
+2. Configure the notification in the S3 console.
+Access the `Properties` tab.
 ![](images/s3_prop_tab.png)
-Create an event notification in Event notifications section
+Create an event notification in the Event notifications section.
 ![](images/s3_noti_creation.png)
-- Leave `suffix`: .pdf
-- Choose `All object create events`, `All object removal events`
-- In `Destination`, choose `SQS queue`, and pick the created SQS queue
+- Set `suffix` to `.pdf`
+- Choose `All object create events` and `All object removal events`
+- In `Destination`, choose `SQS queue` and pick the created SQS queue
 
 
 ### Lambda role:
-- To be able to read items from SQS (AWSLambdaSQSQueueExecutionRole)
-- Read S3 object, read parameter from System Manager (or secrets if use Secrets Manager - more expensive!!)
+- Able to read items from SQS (AWSLambdaSQSQueueExecutionRole)
+- Able to read S3 objects and read parameters from Systems Manager (or from Secrets Manager if used - more expensive!!)
 
-The policy to for the role
+The policy for the role:
 ```json
 {
 	"Version": "2012-10-17",
@@ -95,26 +95,26 @@ The policy to for the role
 }
 ```
 
-## Developpment and Deployment
-I use Makefile to avoid repeating command
+## Development and Deployment
+I use a Makefile to avoid repeating commands.
 ```bash
-# Build the image for local test
+# Build the image for local testing
 make build
 # Local dev with code mounted
 make run
-# testing with sqs message locally
-# simulate Object created event
+# Test with an SQS message locally
+# simulate an object created event
 make invoke-created
-# simulate Object delete event
+# simulate an object deleted event
 make invoke-delete
-# testing (unit tests, integration tests)
+# Run tests (unit tests, integration tests)
 make test
-# push image to ECR
+# Push the image to ECR
 make push TAG=<tag>
-# create the lambda function (1st run), chain with trigger creation
-# link lambda function to sqs
+# Create the Lambda function (first run), chained with trigger creation
+# to link the Lambda function to SQS
 make create TAG=<tag>
-# update the lambda function
-# auto push image and update lambda function
+# Update the Lambda function
+# automatically pushes the image and updates the Lambda function
 make deploy TAG=<tag>
 ```
