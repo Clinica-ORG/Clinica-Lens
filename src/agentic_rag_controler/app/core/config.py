@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     APP_VERSION: str = "v1"
     API_V1_PREFIX: str = "/api/v1"
     SERVICE_NAME: str = "rag-service"
+    # LLM
+    MODEL: str = "openai:gpt-6-luna"
+    # POSGRES DB
+    PG_DB_URL: str = "postgresql://postgres.vrqwrhpfupdrjsaoswat:oJ0Q03cLV33yIjjl@aws-0-eu-west-2.pooler.supabase.com:5432/postgres"
     # Middleware
     INFERENCE_MAX_WORKERS: int = 1
     INFERENCE_MAX_QUEUE: int = 10
