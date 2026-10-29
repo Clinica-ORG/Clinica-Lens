@@ -8,8 +8,12 @@ python-multipart
 pydantic
 pydantic-settings
 # Database
-sqlalchemy
-psycopg2-binary
+asyncpg
+sqlglot
+# pack langchain
+langchain==1.4.7
+langgraph==1.2.12
+langchain-openai==1.7.3
 # Observability
 prometheus-client
 prometheus-fastapi-instrumentator

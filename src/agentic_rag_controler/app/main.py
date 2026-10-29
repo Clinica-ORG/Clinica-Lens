@@ -12,11 +12,13 @@ from slowapi.util import get_remote_address
 from app.api.v1.routers import api_router
 from app.core.config import get_settings
 from app.core.logging import get_logger, setup_logging
-from app.db.database import Base, engine
+from app.db import database
+from app.tools.db import get_db_tools
+from app.services import LLMService, AgentService, AgentMiddlewareService
 from app.middleware.error_handler import register_exception_handlers
 from app.middleware.logging_middleware import AccessLogMiddleware
 from app.middleware.request_tracing import RequestTracingMiddleware
-from app.services.rag_service import RAGService
+
 
 setup_logging()
 logger = get_logger(__name__)
@@ -29,12 +31,23 @@ limiter = Limiter(
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # init db, remove drop_all if use alembic and real production database
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
-
-    app.state.rag_service = RAGService()
-
+    # init db pool
+    await database.init_pool(settings)
+    # init tools
+    db_tools = get_db_tools()
+    TOOLS = db_tools
+    # init llm
+    llm_client = LLMService(
+        model=settings.LLM_MODEL, api_key=settings.OPENAI_API_KEY, tools=TOOLS
+    )
+    # init graph
+    # app.state.graph = GraphService(llm=llm_client)
+    # init agent
+    app.state.agent = AgentService(
+        model=llm_client.get_model(),
+        tools=TOOLS,
+        middleware=AgentMiddlewareService.create_middleware(max_retries=2, run_limit=8),
+    )
     # app.state.inference_limiter = anyio.CapacityLimiter(settings.INFERENCE_MAX_WORKERS)
     app.state.inference_executor = ThreadPoolExecutor(
         max_workers=settings.INFERENCE_MAX_WORKERS, thread_name_prefix="inference"
@@ -42,9 +55,11 @@ async def lifespan(app: FastAPI):
 
     app.state.pipeline_in_flight = 0
 
-    logger.info("rag-service ready")
+    logger.info("agent-service ready")
     yield
-    logger.info("Shutting down rag-service...")
+    logger.info("Shutting down Database pool...")
+    await database.close_pool()
+    logger.info("Shutting down agent-service...")
     app.state.inference_executor.shutdown(wait=True)
 
 
