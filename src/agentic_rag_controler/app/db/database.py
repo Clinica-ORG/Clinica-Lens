@@ -1,4 +1,3 @@
-import os
 import asyncpg
 import sqlglot
 from sqlglot import exp
@@ -8,18 +7,22 @@ from app.core.config import Settings
 pool: asyncpg.Pool | None = None
 MAX_ROWS = 200
 
+
 async def init_pool(settings: Settings) -> None:
     global pool
     pool = await asyncpg.create_pool(
         dsn=settings.PG_DB_URL,
-        min_size=1, max_size=5,
+        min_size=1,
+        max_size=5,
         command_timeout=10,
         statement_cache_size=0,
     )
 
+
 async def close_pool() -> None:
     if pool:
         await pool.close()
+
 
 def validate_select(sql: str) -> str:
     """Allow exactly one read-only statement. Returns normalized SQL."""
@@ -37,11 +40,13 @@ def validate_select(sql: str) -> str:
         raise ValueError("Write operations are not allowed.")
     return stmt.sql(dialect="postgres")
 
+
 async def fetch_readonly(sql: str, *args) -> list[dict]:
     async with pool.acquire() as con:
         async with con.transaction(readonly=True):
             rows = await con.fetch(sql, *args)
     return [dict(r) for r in rows]
+
 
 async def run_select(sql: str) -> list[dict]:
     clean = validate_select(sql)

@@ -5,11 +5,15 @@ from app.state, instead of creating new one for every request.
 
 from fastapi import Request
 
-from app.services.rag_service import RagService
+from app.services import GraphService, AgentService
 
 
-def get_segmentation_service(request: Request) -> RagService:
-    return request.app.state.segmentation_service
+def get_agent_graph(request: Request) -> GraphService:
+    return request.app.state.graph
+
+
+def get_agent(request: Request) -> AgentService:
+    return request.app.state.agent
 
 
 def get_inference_executor(request: Request):

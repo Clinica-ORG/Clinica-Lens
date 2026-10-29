@@ -24,14 +24,20 @@ def _env_list(name: str, default: list[str]) -> list[str]:
 
 class Settings(BaseSettings):
     # App
-    APP_NAME: str = "vision"
+    APP_NAME: str = "Clinica-lens"
     APP_VERSION: str = "v1"
     API_V1_PREFIX: str = "/api/v1"
-    SERVICE_NAME: str = "rag-service"
+    SERVICE_NAME: str = "agent-rag-service"
     # LLM
-    MODEL: str = "openai:gpt-6-luna"
+    LLM_MODEL: str = "openai:gpt-6-luna"
+    OPENAI_API_KEY: str = ""
     # POSGRES DB
-    PG_DB_URL: str = "postgresql://postgres.vrqwrhpfupdrjsaoswat:oJ0Q03cLV33yIjjl@aws-0-eu-west-2.pooler.supabase.com:5432/postgres"
+    PG_DB_URL: str = ""
+    # Obs
+    LANGSMITH_TRACING: bool = False
+    LANGSMITH_API_KEY: str = ""
+    LANGSMITH_PROJECT: str = ""
+    LANGSMITH_ENDPOINT: str = "https://eu.api.smith.langchain.com"
     # Middleware
     INFERENCE_MAX_WORKERS: int = 1
     INFERENCE_MAX_QUEUE: int = 10
@@ -52,7 +58,7 @@ class Settings(BaseSettings):
     LOG_RETENTION_DAYS: int = 3
 
     class Config:
-        env_prefix = "RAG_"  # reads RAG_<ENV>
+        env_prefix = "AGENT_"  # reads RAG_<ENV>
         env_file = ".env"
         env_file_encoding = "utf-8"
         extra = "ignore"
@@ -61,3 +67,12 @@ class Settings(BaseSettings):
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
+
+settings = get_settings()
+if settings.LANGSMITH_TRACING:
+    os.environ["LANGSMITH_TRACING_V2"] = "true"
+    os.environ["LANGSMITH_API_KEY"] = settings.LANGSMITH_API_KEY
+    os.environ["LANGSMITH_PROJECT"] = settings.LANGSMITH_PROJECT
+    # os.environ["LANGSMITH_AGENT_ID"] = 'clinica-lens'
+    # os.environ["LANGSMITH_ENDPOINT"] = 'https://api.smith.langchain.com'
