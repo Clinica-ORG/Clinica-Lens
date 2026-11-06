@@ -54,6 +54,18 @@ def login(user_name: str, password: str) -> str:
     return r.json()["access_token"]
 
 
+def create_conversation(token: str) -> str:
+    """POST /conversations -> new conversation id."""
+    try:
+        r = httpx.post(
+            f"{API_BASE}/conversations", headers=_headers(token), timeout=_TIMEOUT
+        )
+    except httpx.HTTPError as e:
+        raise ApiError("Cannot reach the API.") from e
+    _check(r)
+    return r.json()["id"]
+
+
 def list_conversations(token: str) -> list[dict]:
     """GET /conversations -> [{id, title, updated_at}]. Empty list if not available."""
     try:

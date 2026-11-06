@@ -8,6 +8,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
+from langfuse import get_client
 
 from app.api.v1.routers import api_router
 from app.core.config import get_settings
@@ -52,6 +53,8 @@ async def lifespan(app: FastAPI):
     app.state.inference_executor = ThreadPoolExecutor(
         max_workers=settings.INFERENCE_MAX_WORKERS, thread_name_prefix="inference"
     )
+    # observation framework
+    langfuse_client = get_client()
 
     app.state.pipeline_in_flight = 0
 
@@ -61,6 +64,8 @@ async def lifespan(app: FastAPI):
     await database.close_pool()
     logger.info("Shutting down agent-service...")
     app.state.inference_executor.shutdown(wait=True)
+    langfuse_client.flush()
+    langfuse_client.shutdown()
 
 
 def create_app() -> FastAPI:

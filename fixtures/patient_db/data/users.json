@@ -1,0 +1,17 @@
+[
+    {
+    "user_name": "physician",
+    "hashed_password": "$argon2id$v=19$m=65536,t=3,p=4$SSr/BWViKjJNmRCHItFwew$5+3RPRqXegfDam//d7CzSRGeBMBdkwjZ2b26GL1CWYs",
+    "role": "physician"
+    },
+    {
+    "user_name": "staff",
+    "hashed_password": "$argon2id$v=19$m=65536,t=3,p=4$SSr/BWViKjJNmRCHItFwew$5+3RPRqXegfDam//d7CzSRGeBMBdkwjZ2b26GL1CWYs",
+    "role": "staff"
+    },
+        {
+    "user_name": "admin",
+    "hashed_password": "$argon2id$v=19$m=65536,t=3,p=4$SSr/BWViKjJNmRCHItFwew$5+3RPRqXegfDam//d7CzSRGeBMBdkwjZ2b26GL1CWYs",
+    "role": "admin"
+    }
+]

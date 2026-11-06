@@ -7,7 +7,7 @@ from pathlib import Path
 from sqlalchemy import create_engine, select, text
 from sqlalchemy.orm import Session
 
-from models import Base, Department, Patient, PatientStatus
+from models import Base, Department, Patient, PatientStatus, Base_conv, User
 
 engine = create_engine(os.environ["ADMIN_DATABASE_URL"])
 
@@ -15,7 +15,9 @@ engine = create_engine(os.environ["ADMIN_DATABASE_URL"])
 def init_schema():
     with engine.begin() as conn:
         conn.execute(text("create schema if not exists clinical"))
+        conn.execute(text("create schema if not exists clinical_conversations"))
     Base.metadata.create_all(engine)
+    Base_conv.metadata.create_all(engine)
 
 
 def make_mrn(rec: dict) -> str:
@@ -26,7 +28,20 @@ def make_mrn(rec: dict) -> str:
 
 def seed():
     records = json.loads((Path(__file__).parent / "data" / "patients.json").read_text())
+    records_conv = json.loads(
+        (Path(__file__).parent / "data" / "users.json").read_text()
+    )
     with Session(engine) as s:
+        for rec in records_conv:
+            if s.scalar(select(User).where(User.user_name == rec["user_name"])):
+                continue  # already seeded
+            s.add(
+                User(
+                    user_name=rec["user_name"],
+                    hashed_password=rec["hashed_password"],
+                    role=rec.get("role", "physician"),
+                )
+            )
         for rec in records:
             mrn = rec.get("mrn") or make_mrn(rec)
             if s.scalar(select(Patient).where(Patient.mrn == mrn)):

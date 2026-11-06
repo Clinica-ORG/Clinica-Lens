@@ -1,5 +1,3 @@
-import uuid
-
 import streamlit as st
 
 import api_client as api
@@ -9,7 +7,7 @@ st.set_page_config(page_title="Clinica-lens", page_icon="🩺", layout="centered
 
 # ---------------------------------------------------------------- state ----
 def _new_conversation() -> None:
-    st.session_state.conv_id = str(uuid.uuid4())
+    st.session_state.conv_id = None
     st.session_state.messages = []
 
 
@@ -103,6 +101,14 @@ for m in st.session_state.messages:
         st.markdown(m["content"])
 
 if question := st.chat_input("Ask a question"):
+    if st.session_state.conv_id is None:
+        try:
+            st.session_state.conv_id = api.create_conversation(token)
+        except api.AuthError as e:
+            _logout(str(e))
+        except api.ApiError as e:
+            st.error(str(e))
+            st.stop()
     st.session_state.messages.append({"role": "user", "content": question})
     with st.chat_message("user"):
         st.markdown(question)

@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Request, Depends
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+from langfuse.langchain import CallbackHandler
 
 from app.services import AgentService
 from app.dependencies import get_agent
@@ -24,7 +25,10 @@ async def query(
     request: Request, payload: Ask, agent_client: AgentService = Depends(get_agent)
 ) -> AgentResponse:
     request_id = getattr(request.state, "request_id", None)
+    handler = CallbackHandler()
     # reply = await graph_client.invoke(payload.question)
-    reply = await agent_client.ainvoke(payload.question, config={})
+    reply = await agent_client.ainvoke(
+        payload.question, config={"callbacks": [handler]}
+    )
     res = AgentResponse(reply=reply["messages"][-1].text, request_id=request_id)
     return res

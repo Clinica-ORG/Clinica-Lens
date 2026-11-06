@@ -8,6 +8,7 @@ import os
 from dataclasses import field
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic_settings import BaseSettings
 
@@ -34,10 +35,15 @@ class Settings(BaseSettings):
     # POSGRES DB
     PG_DB_URL: str = ""
     # Obs
-    LANGSMITH_TRACING: bool = False
+    ## Langsmith
+    TRACING_FRAMEWORK: Literal["langsmith", "langfuse"] = "langfuse"
     LANGSMITH_API_KEY: str = ""
     LANGSMITH_PROJECT: str = ""
     LANGSMITH_ENDPOINT: str = "https://eu.api.smith.langchain.com"
+    ## Langfuse
+    LANGFUSE_PUBLIC_KEY: str = ""
+    LANGFUSE_SECRET_KEY: str = ""
+    LANGFUSE_BASE_URL: str = "https://cloud.langfuse.com"
     # Middleware
     INFERENCE_MAX_WORKERS: int = 1
     INFERENCE_MAX_QUEUE: int = 10
@@ -64,15 +70,22 @@ class Settings(BaseSettings):
         extra = "ignore"
 
 
+def init_observation_framework(settings: Settings):
+    match settings.TRACING_FRAMEWORK:
+        case "langsmith":
+            os.environ["LANGSMITH_TRACING_V2"] = "true"
+            os.environ["LANGSMITH_API_KEY"] = settings.LANGSMITH_API_KEY
+            os.environ["LANGSMITH_PROJECT"] = settings.LANGSMITH_PROJECT
+        case "langfuse":
+            os.environ["LANGFUSE_PUBLIC_KEY"] = settings.LANGFUSE_PUBLIC_KEY
+            os.environ["LANGFUSE_SECRET_KEY"] = settings.LANGFUSE_SECRET_KEY
+            os.environ["LANGFUSE_BASE_URL"] = settings.LANGFUSE_BASE_URL
+
+
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
 
 
 settings = get_settings()
-if settings.LANGSMITH_TRACING:
-    os.environ["LANGSMITH_TRACING_V2"] = "true"
-    os.environ["LANGSMITH_API_KEY"] = settings.LANGSMITH_API_KEY
-    os.environ["LANGSMITH_PROJECT"] = settings.LANGSMITH_PROJECT
-    # os.environ["LANGSMITH_AGENT_ID"] = 'clinica-lens'
-    # os.environ["LANGSMITH_ENDPOINT"] = 'https://api.smith.langchain.com'
+init_observation_framework(settings)
