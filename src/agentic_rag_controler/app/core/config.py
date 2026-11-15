@@ -10,6 +10,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings
 
 ROOT_DIR = Path(__file__).parents[1]
@@ -49,6 +50,10 @@ class Settings(BaseSettings):
     INFERENCE_MAX_QUEUE: int = 10
     RATE_LIMIT_EXTRACT: str = "10/minute"
     RATE_LIMIT_DEFAULT: str = "60/minute"
+    # Auth
+    JWT_ALGORITHM: str = "HS256"
+    JWT_SECRET: SecretStr = Field(min_length=32)
+    ACCESS_TOKEN_MINUTES: int = 30
     # --- CORS ---
     CORS_ORIGINS: list[str] = field(
         default_factory=lambda: _env_list("CORS_ORIGINS", ["*"])

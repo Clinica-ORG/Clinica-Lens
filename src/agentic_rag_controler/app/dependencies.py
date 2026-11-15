@@ -4,12 +4,21 @@ from app.state, instead of creating new one for every request.
 """
 
 from fastapi import Request
+from langgraph.store.base import BaseStore
 
 from app.services import GraphService, AgentService
 
 
 def get_agent_graph(request: Request) -> GraphService:
     return request.app.state.graph
+
+
+def get_obs_client(request: Request):
+    return request.app.state.obs_client
+
+
+def get_store(request: Request) -> BaseStore:
+    return request.app.state.store
 
 
 def get_agent(request: Request) -> AgentService:
