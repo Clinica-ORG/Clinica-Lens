@@ -9,11 +9,17 @@ pydantic
 pydantic-settings
 # Database
 asyncpg
+psycopg[binary,pool]
 sqlglot
+argon2-cffi==25.1.0
+# Auth
+PyJWT==2.15.1
 # pack langchain
 langchain==1.4.7
 langgraph==1.2.12
 langchain-openai==1.7.3
+langfuse==5.2.0
+langgraph-checkpoint-postgres==3.2.1
 # Observability
 prometheus-client
 prometheus-fastapi-instrumentator

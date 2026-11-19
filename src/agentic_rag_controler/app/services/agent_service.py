@@ -1,5 +1,4 @@
 from langchain.agents import create_agent
-from langchain.messages import HumanMessage
 from langchain.agents.middleware import ToolCallLimitMiddleware, ToolRetryMiddleware
 
 from app.services.prompts import SYSTEM_PROMPT
@@ -19,18 +18,30 @@ class AgentMiddlewareService:
         return list_middleware
 
 
-class AgentService:
-    def __init__(self, model, tools, middleware, checkpointer=None):
-        self.agent = create_agent(
-            model=model,
-            tools=tools,
-            system_prompt=SYSTEM_PROMPT,
-            middleware=middleware,
-            checkpointer=checkpointer,
-        )
+def build_agent(model, tools, middleware, checkpointer=None, store=None):
+    return create_agent(
+        model=model,
+        tools=tools,
+        system_prompt=SYSTEM_PROMPT,
+        middleware=middleware,
+        checkpointer=checkpointer,
+        store=store,
+    )
 
-    async def ainvoke(self, request: str, config: dict):
-        rep = await self.agent.ainvoke(
-            input={"messages": [HumanMessage(request)]}, config=config
-        )
-        return rep
+
+# class AgentService:
+#     def __init__(self, model, tools, middleware, checkpointer=None, store=None):
+#         self.agent = create_agent(
+#             model=model,
+#             tools=tools,
+#             system_prompt=SYSTEM_PROMPT,
+#             middleware=middleware,
+#             checkpointer=checkpointer,
+#             store=store
+#         )
+
+#     async def ainvoke(self, request: str, config: dict):
+#         rep = await self.agent.ainvoke(
+#             input={"messages": [HumanMessage(request)]}, config=config
+#         )
+#         return rep

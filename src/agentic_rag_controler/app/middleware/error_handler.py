@@ -39,7 +39,8 @@ def register_exception_handlers(app: FastAPI) -> None:
     @app.exception_handler(RequestValidationError)
     async def validation_error_handler(request: Request, exc: RequestValidationError):
         PIPELINE_ERRORS.labels(
-            error_code=exc.error_code, stage=exc.stage or "unknown"
+            error_code="VALIDATION_ERROR",
+            stage=exc.stage if hasattr(exc, "stage") else "unknown",
         ).inc()
         return JSONResponse(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

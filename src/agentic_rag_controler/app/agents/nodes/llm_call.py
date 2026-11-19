@@ -1,6 +1,6 @@
 from langchain.messages import SystemMessage
 from app.agents.state import AgentState
-from app.services import SYSTEM_PROMPT
+from app.services.prompts import SYSTEM_PROMPT
 
 
 def make_llm_call_node(llm_client):

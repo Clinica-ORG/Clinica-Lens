@@ -8,13 +8,16 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
+from langfuse import get_client
+from langgraph.store.postgres import AsyncPostgresStore
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from app.api.v1.routers import api_router
 from app.core.config import get_settings
 from app.core.logging import get_logger, setup_logging
 from app.db import database
 from app.tools.db import get_db_tools
-from app.services import LLMService, AgentService, AgentMiddlewareService
+from app.services import LLMService, AgentMiddlewareService, build_agent
 from app.middleware.error_handler import register_exception_handlers
 from app.middleware.logging_middleware import AccessLogMiddleware
 from app.middleware.request_tracing import RequestTracingMiddleware
@@ -31,36 +34,59 @@ limiter = Limiter(
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # init db pool
-    await database.init_pool(settings)
-    # init tools
-    db_tools = get_db_tools()
-    TOOLS = db_tools
-    # init llm
-    llm_client = LLMService(
-        model=settings.LLM_MODEL, api_key=settings.OPENAI_API_KEY, tools=TOOLS
-    )
-    # init graph
-    # app.state.graph = GraphService(llm=llm_client)
-    # init agent
-    app.state.agent = AgentService(
-        model=llm_client.get_model(),
-        tools=TOOLS,
-        middleware=AgentMiddlewareService.create_middleware(max_retries=2, run_limit=8),
-    )
-    # app.state.inference_limiter = anyio.CapacityLimiter(settings.INFERENCE_MAX_WORKERS)
-    app.state.inference_executor = ThreadPoolExecutor(
-        max_workers=settings.INFERENCE_MAX_WORKERS, thread_name_prefix="inference"
-    )
+    langfuse_client = None
+    try:
+        # init db pool
+        await database.init_pool(settings)
 
-    app.state.pipeline_in_flight = 0
+        async with (
+            AsyncPostgresSaver.from_conn_string(
+                str(settings.PG_DB_URL)
+            ) as checkpointer,
+            AsyncPostgresStore.from_conn_string(str(settings.PG_DB_URL)) as store,
+        ):
+            # init tools
+            db_tools = get_db_tools()
+            TOOLS = db_tools
+            # init llm
+            llm_client = LLMService(
+                model=settings.LLM_MODEL, api_key=settings.OPENAI_API_KEY, tools=TOOLS
+            )
+            # init graph
+            # app.state.graph = GraphService(llm=llm_client)
+            # init agent
+            app.state.agent = build_agent(
+                model=llm_client.get_model(),
+                tools=TOOLS,
+                checkpointer=checkpointer,
+                store=store,
+                middleware=AgentMiddlewareService.create_middleware(
+                    max_retries=2, run_limit=8
+                ),
+            )
+            app.state.store = store
+            # app.state.inference_limiter = anyio.CapacityLimiter(settings.INFERENCE_MAX_WORKERS)
+            app.state.inference_executor = ThreadPoolExecutor(
+                max_workers=settings.INFERENCE_MAX_WORKERS,
+                thread_name_prefix="inference",
+            )
+            # observation framework
+            langfuse_client = get_client()
+            app.state.obs_client = langfuse_client
 
-    logger.info("agent-service ready")
-    yield
-    logger.info("Shutting down Database pool...")
-    await database.close_pool()
-    logger.info("Shutting down agent-service...")
-    app.state.inference_executor.shutdown(wait=True)
+            app.state.pipeline_in_flight = 0
+            app.state.running = {}
+            logger.info("agent-service ready")
+            yield
+    finally:
+        logger.info("Shutting down Database pool...")
+        await database.close_pool()
+        logger.info("Shutting down agent-service...")
+        app.state.inference_executor.shutdown(wait=True)
+        if langfuse_client:
+            logger.info("Shutting down langfuse client...")
+            app.state.obs_client.flush()
+            app.state.obs_client.shutdown()
 
 
 def create_app() -> FastAPI:
