@@ -17,7 +17,7 @@ from app.core.config import get_settings
 from app.core.logging import get_logger, setup_logging
 from app.db import database
 from app.tools.db import get_db_tools
-from app.services import LLMService, AgentService, AgentMiddlewareService
+from app.services import LLMService, AgentMiddlewareService, build_agent
 from app.middleware.error_handler import register_exception_handlers
 from app.middleware.logging_middleware import AccessLogMiddleware
 from app.middleware.request_tracing import RequestTracingMiddleware
@@ -39,8 +39,12 @@ async def lifespan(app: FastAPI):
         # init db pool
         await database.init_pool(settings)
 
-        async with (AsyncPostgresSaver.from_conn_string(str(settings.PG_DB_URL)) as checkpointer,
-                    AsyncPostgresStore.from_conn_string(str(settings.PG_DB_URL)) as store):
+        async with (
+            AsyncPostgresSaver.from_conn_string(
+                str(settings.PG_DB_URL)
+            ) as checkpointer,
+            AsyncPostgresStore.from_conn_string(str(settings.PG_DB_URL)) as store,
+        ):
             # init tools
             db_tools = get_db_tools()
             TOOLS = db_tools
@@ -51,24 +55,27 @@ async def lifespan(app: FastAPI):
             # init graph
             # app.state.graph = GraphService(llm=llm_client)
             # init agent
-            app.state.agent = AgentService(
+            app.state.agent = build_agent(
                 model=llm_client.get_model(),
                 tools=TOOLS,
                 checkpointer=checkpointer,
                 store=store,
-                middleware=AgentMiddlewareService.create_middleware(max_retries=2, run_limit=8),
+                middleware=AgentMiddlewareService.create_middleware(
+                    max_retries=2, run_limit=8
+                ),
             )
             app.state.store = store
             # app.state.inference_limiter = anyio.CapacityLimiter(settings.INFERENCE_MAX_WORKERS)
             app.state.inference_executor = ThreadPoolExecutor(
-                max_workers=settings.INFERENCE_MAX_WORKERS, thread_name_prefix="inference"
+                max_workers=settings.INFERENCE_MAX_WORKERS,
+                thread_name_prefix="inference",
             )
             # observation framework
             langfuse_client = get_client()
             app.state.obs_client = langfuse_client
-        
+
             app.state.pipeline_in_flight = 0
-        
+            app.state.running = {}
             logger.info("agent-service ready")
             yield
     finally:

@@ -17,18 +17,29 @@ _ph = PasswordHasher()
 DUMMY_HASH = _ph.hash("dummy password")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login", auto_error=False)
 
+
 def create_access_token(user: User) -> tuple[str, int]:
     settings = get_settings()
     expires = timedelta(minutes=settings.ACCESS_TOKEN_MINUTES)
-    claims = {"sub": user.user_id, "name": user.name, "exp": datetime.now(timezone.utc) + expires}
-    token = jwt.encode(claims, settings.JWT_SECRET.get_secret_value(), algorithm=settings.JWT_ALGORITHM)
+    claims = {
+        "sub": user.user_id,
+        "name": user.name,
+        "exp": datetime.now(timezone.utc) + expires,
+    }
+    token = jwt.encode(
+        claims, settings.JWT_SECRET.get_secret_value(), algorithm=settings.JWT_ALGORITHM
+    )
     return token, int(expires.total_seconds())
 
 
 def decode_access_token(token: str) -> User:
     """Verify signature and expiry; raises InvalidTokenError otherwise."""
     settings = get_settings()
-    claims = jwt.decode(token, settings.JWT_SECRET.get_secret_value(), algorithms=[settings.JWT_ALGORITHM])
+    claims = jwt.decode(
+        token,
+        settings.JWT_SECRET.get_secret_value(),
+        algorithms=[settings.JWT_ALGORITHM],
+    )
     return User(user_id=claims["sub"], name=claims.get("name", claims["sub"]))
 
 
@@ -51,11 +62,15 @@ async def authenticate(user_name: str, password: str) -> dict | None:
     print(user)
 
     return User(user_id=str(user["id"]), name=user["user_name"], role=user["role"])
-    #return {"id": user["id"], "user_name": user["user_name"], "role": user["role"]}
+    # return {"id": user["id"], "user_name": user["user_name"], "role": user["role"]}
 
 
-async def current_user(request: Request, token: Annotated[str | None, Depends(oauth2_scheme)]) -> User:
-    unauthorized = HTTPException(401, "Missing, invalid or expired token", headers={"WWW-Authenticate": "Bearer"})
+async def current_user(
+    request: Request, token: Annotated[str | None, Depends(oauth2_scheme)]
+) -> User:
+    unauthorized = HTTPException(
+        401, "Missing, invalid or expired token", headers={"WWW-Authenticate": "Bearer"}
+    )
     if not token:
         raise unauthorized
     try:
@@ -70,4 +85,7 @@ async def current_user(request: Request, token: Annotated[str | None, Depends(oa
     user = rows[0] if rows else None
     if user is None:  # account deleted since login
         raise unauthorized
-    return User(user_id=user["id"], name=user["user_name"], role=user["role"])
+    return User(user_id=str(user["id"]), name=user["user_name"], role=user["role"])
+
+
+CurrentUser = Annotated[User, Depends(current_user)]

@@ -7,14 +7,14 @@ st.set_page_config(page_title="Clinica-lens", page_icon="🩺", layout="centered
 
 # ---------------------------------------------------------------- state ----
 def _new_conversation() -> None:
-    st.session_state.conv_id = None
+    st.session_state.thread_id = None
     st.session_state.messages = []
 
 
-def _open_conversation(conv_id: str) -> None:
-    st.session_state.conv_id = conv_id
+def _open_conversation(thread_id: str) -> None:
+    st.session_state.thread_id = thread_id
     # History always comes from the server, never from local state.
-    st.session_state.messages = api.get_messages(st.session_state.token, conv_id)
+    st.session_state.messages = api.get_messages(st.session_state.token, thread_id)
 
 
 def _logout(message: str | None = None) -> None:
@@ -58,6 +58,60 @@ if "token" not in st.session_state:
 
 token: str = st.session_state.token
 
+# ---------------------------------------------------------------- streaming ----
+
+
+def run_turn(token: str, question: str, thread_id: str):
+    answer, steps, failed = "", [], False
+
+    with st.chat_message("assistant"):
+        steps_box = st.container()  # sits above the answer
+        text = st.empty()
+        text.markdown("_thinking…_")
+        status = None  # created only if a tool is actually used
+
+        try:
+            for name, data in api.stream_answer(token, question, thread_id):
+                if name in ("tool_call", "tool_result"):
+                    if status is None:
+                        status = steps_box.status("Working…", expanded=True)
+                    if name == "tool_call":
+                        line = f"🔧 **{data.get('name', '')}**"
+                        status.update(label=f"Running {data.get('name', '')}…")
+                    else:
+                        line = f"✅ {data.get('name', '')} → {data.get('status', '')}"
+                    steps.append(line)
+                    status.write(line)
+
+                elif name == "token":
+                    answer += data["text"]
+                    text.markdown(answer + "▌")
+
+                elif name == "error":
+                    failed = True
+                    answer += f"\n\n**Error {data.get('error_code', '')}:** {data.get('message', data)}"
+                    break
+
+                elif name == "done":
+                    break
+
+        except api.AuthError as e:
+            _logout(str(e))
+        except api.ApiError as e:
+            failed = True
+            answer = answer or f"Something went wrong: {e}"
+
+        text.markdown(answer or "_No answer was returned._")
+        if status is not None:
+            status.update(
+                label=f"Used {len(steps) // 2 or 1} tool(s)",
+                state="error" if failed else "complete",
+                expanded=False,
+            )
+
+    return answer, steps, failed
+
+
 # -------------------------------------------------------------- sidebar ----
 try:
     conversations = api.list_conversations(token)
@@ -78,14 +132,14 @@ with st.sidebar:
     if not conversations:
         st.caption("No conversations yet.")
     for c in conversations:
-        active = c["id"] == st.session_state.conv_id
+        active = c["thread_id"] == st.session_state.thread_id
         st.button(
-            (c.get("title") or c["id"][:8])[:40],
-            key=f"conv-{c['id']}",
+            (c.get("title") or c["thread_id"][:8])[:40],
+            key=f"conv-{c['thread_id']}",
             use_container_width=True,
             type="secondary" if not active else "primary",
             on_click=_open_conversation,
-            args=(c["id"],),
+            args=(c["thread_id"],),
         )
 
 # ----------------------------------------------------------------- chat ----
@@ -100,10 +154,25 @@ for m in st.session_state.messages:
     with st.chat_message(m["role"]):
         st.markdown(m["content"])
 
+for m in st.session_state.messages:
+    if m["content"] == "" or m["role"] == "tool":
+        continue
+    with st.chat_message(m["role"]):
+        if m["role"] == "assistant":
+            if m.get("steps"):
+                with st.status(
+                    f"Used {len(m['steps']) // 2 or 1} tool(s)",
+                    state="complete",
+                    expanded=False,
+                ):
+                    for line in m["steps"]:
+                        st.write(line)
+        st.markdown(m["content"])
+
 if question := st.chat_input("Ask a question"):
-    if st.session_state.conv_id is None:
+    if st.session_state.thread_id is None:
         try:
-            st.session_state.conv_id = api.create_conversation(token)
+            st.session_state.thread_id = api.create_conversation(token)
         except api.AuthError as e:
             _logout(str(e))
         except api.ApiError as e:
@@ -113,32 +182,9 @@ if question := st.chat_input("Ask a question"):
     with st.chat_message("user"):
         st.markdown(question)
 
-    with st.chat_message("assistant"):
-        placeholder = st.empty()
-        placeholder.markdown("_thinking…_")
-        answer = ""
-        failed = False
-        try:
-            for event in api.stream_answer(token, question, st.session_state.conv_id):
-                if "token" in event:
-                    answer += event["token"]
-                    placeholder.markdown(answer + "▌")
-                elif "status" in event and not answer:
-                    placeholder.markdown(f"_{event['status']}…_")
-                elif "error" in event:
-                    failed = True
-                    break
-        except api.AuthError as e:
-            _logout(str(e))
-        except api.ApiError as e:
-            failed = True
-            answer = answer or str(e)
+    answer, steps, failed = run_turn(token, question, st.session_state.thread_id)
 
-        if failed and not answer:
-            answer = "Something went wrong. Please try again."
-        placeholder.markdown(answer)
-        if failed:
-            st.error("The answer may be incomplete.", icon="⚠️")
-
-    st.session_state.messages.append({"role": "assistant", "content": answer})
+    st.session_state.messages.append(
+        {"role": "assistant", "content": answer, "steps": steps}
+    )
     st.rerun() if not failed else None  # refresh the sidebar conversation list

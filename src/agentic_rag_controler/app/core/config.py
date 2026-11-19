@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     # LLM
     LLM_MODEL: str = "openai:gpt-6-luna"
     OPENAI_API_KEY: str = ""
+    RUN_TIMEOUT_S: int = 180  # a brief run normally takes 20-60 s
     # POSGRES DB
     PG_DB_URL: str = ""
     # Obs

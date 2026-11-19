@@ -4,6 +4,7 @@ The UI never talks to the database. It only calls the API with a Bearer token,
 and the API derives the user (and tenant) from that token.
 """
 
+import streamlit as st
 import json
 import os
 from collections.abc import Iterator
@@ -15,6 +16,7 @@ API_BASE = os.getenv("API_BASE", "http://localhost:8000/api/v1").rstrip("/")
 # Short connect/write timeouts, no read timeout (answers stream for several seconds).
 _STREAM_TIMEOUT = httpx.Timeout(10.0, read=None)
 _TIMEOUT = httpx.Timeout(15.0)
+DEBUG = False
 
 
 class AuthError(Exception):
@@ -43,11 +45,13 @@ def login(user_name: str, password: str) -> str:
     try:
         r = httpx.post(
             f"{API_BASE}/auth/login",
-            json={"user_name": user_name, "password": password},
+            data={"username": user_name, "password": password},
             timeout=_TIMEOUT,
         )
     except httpx.HTTPError as e:
         raise ApiError("Cannot reach the API.") from e
+    if DEBUG:
+        st.write(f"login() response: {r.status_code} {r.text}")
     if r.status_code in (400, 401, 403):
         raise AuthError("Invalid user name or password.")
     _check(r)
@@ -55,23 +59,19 @@ def login(user_name: str, password: str) -> str:
 
 
 def create_conversation(token: str) -> str:
-    """POST /conversations -> new conversation id."""
+    """POST /threads -> new conversation id."""
     try:
-        r = httpx.post(
-            f"{API_BASE}/conversations", headers=_headers(token), timeout=_TIMEOUT
-        )
+        r = httpx.post(f"{API_BASE}/threads", headers=_headers(token), timeout=_TIMEOUT)
     except httpx.HTTPError as e:
         raise ApiError("Cannot reach the API.") from e
     _check(r)
-    return r.json()["id"]
+    return r.json()["thread_id"]
 
 
 def list_conversations(token: str) -> list[dict]:
-    """GET /conversations -> [{id, title, updated_at}]. Empty list if not available."""
+    """GET /threads -> [{thread_id, title, created_at, status}]. Empty list if not available."""
     try:
-        r = httpx.get(
-            f"{API_BASE}/conversations", headers=_headers(token), timeout=_TIMEOUT
-        )
+        r = httpx.get(f"{API_BASE}/threads", headers=_headers(token), timeout=_TIMEOUT)
     except httpx.HTTPError:
         return []
     if r.status_code in (401, 403):
@@ -82,10 +82,10 @@ def list_conversations(token: str) -> list[dict]:
 
 
 def get_messages(token: str, conversation_id: str) -> list[dict]:
-    """GET /conversations/{id} -> [{role, content}]. 404 means empty/new."""
+    """GET /threads/{thread_id} -> [{role, content}]. 404 means empty/new."""
     try:
         r = httpx.get(
-            f"{API_BASE}/conversations/{conversation_id}",
+            f"{API_BASE}/threads/{conversation_id}",
             headers=_headers(token),
             timeout=_TIMEOUT,
         )
@@ -97,28 +97,33 @@ def get_messages(token: str, conversation_id: str) -> list[dict]:
     return r.json().get("messages", [])
 
 
-def stream_answer(token: str, question: str, conversation_id: str) -> Iterator[dict]:
-    """POST /query/stream and yield parsed SSE events.
+def stream_answer(token: str, question: str, thread_id: str) -> Iterator[dict]:
+    """POST /threads/{thread_id}/runs and yield parsed SSE events.
 
     Events: {"token": str} | {"status": str} | {"done": true, ...} | {"error": str}
     """
     try:
         with httpx.stream(
             "POST",
-            f"{API_BASE}/query/stream",
+            f"{API_BASE}/threads/{thread_id}/runs",
             headers=_headers(token),
-            json={"question": question, "conversation_id": conversation_id},
+            json={"message": question},
             timeout=_STREAM_TIMEOUT,
         ) as r:
             if r.status_code >= 400:
                 r.read()
                 _check(r)
+
+            event_name = "message"
             for line in r.iter_lines():
-                if not line.startswith("data:"):
-                    continue
-                try:
-                    yield json.loads(line[5:].strip())
-                except json.JSONDecodeError:
-                    continue
+                if line.startswith("event:"):
+                    event_name = line[6:].strip()
+                elif line.startswith("data:"):
+                    try:
+                        yield event_name, json.loads(line[5:].strip())
+                    except json.JSONDecodeError:
+                        pass
+                elif line == "":
+                    event_name = "message"
     except httpx.HTTPError as e:
         raise ApiError("Connection to the API was interrupted.") from e

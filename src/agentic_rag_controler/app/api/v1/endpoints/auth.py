@@ -1,13 +1,10 @@
 from typing import Annotated
 from pydantic import BaseModel, SecretStr
-from fastapi import APIRouter, Request, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import OAuth2PasswordRequestForm
-import asyncio
 from argon2 import PasswordHasher
-from argon2.exceptions import VerifyMismatchError, InvalidHashError
 
-from app.schemas.auth_schemas import AuthResponse, Token
-from app.db.database import fetch_readonly
+from app.schemas.auth_schemas import Token
 from app.core.security import authenticate, create_access_token
 
 router = APIRouter()
