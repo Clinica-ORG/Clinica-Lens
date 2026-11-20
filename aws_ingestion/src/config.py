@@ -49,7 +49,8 @@ class Settings(BaseSettings):
     openai_llm_model_name: Literal["gpt-4o-mini", "gpt-4o"] = "gpt-4o-mini"
     # vector db
     vectordb_api_key_secret_name: str = "/clinica-lens/qdrant-api-key"
-    vectordb_endpoint: str = "https://ef914b8a-6ca1-4294-ba19-1b156e3ce8d2.eu-central-1-0.aws.cloud.qdrant.io"
+    vectordb_endpoint_secret_name: str = "/clinica-lens/qdrant-endpoint"
+    vectordb_bm25: bool = True
     # doc processing
     vlm_toc: bool = True
 

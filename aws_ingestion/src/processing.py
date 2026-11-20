@@ -4,6 +4,7 @@ import logging
 import pymupdf
 import pymupdf4llm
 from langchain_community.document_loaders import PyPDFLoader
+
 from clients import s3, datalab_client, embeddings_client, llm_client, vectordb_client
 from splitters import get_splitter
 from utils import (
@@ -30,6 +31,16 @@ def file_sha256(path_or_bytes) -> str:
 
 def point_id(doc_id: str, chunk_index: int) -> str:
     return str(uuid.uuid5(NAMESPACE, f"{doc_id}:{chunk_index}"))
+
+
+def build_path(doc_title: str, meta: dict) -> str:
+    parts = [
+        doc_title,
+        meta.get("Header 1"),
+        meta.get("Header 2"),
+        meta.get("Header 3"),
+    ]
+    return " > ".join(p.strip() for p in parts if p)
 
 
 def process_pdf(bucket: str, key: str, vlm_toc: bool) -> None:
@@ -83,7 +94,11 @@ def process_pdf(bucket: str, key: str, vlm_toc: bool) -> None:
 
     logging.info(f"Split document into chunks using {first_strategy} splitter:")
     sections = splitter.split_text(text=doc_fixed, strategy=first_strategy)
-    sections = add_metadata_to_docs(metadata={"source": title}, docs=sections)
+    additional_metadata = [
+        {"source": title, "section_path": build_path(title, d.metadata)}
+        for d in sections
+    ]
+    sections = add_metadata_to_docs(metadata=additional_metadata, docs=sections)
 
     logging.info(f"Split document into chunks using {second_strategy} splitter:")
     sub_sections = splitter.split_documents(
@@ -99,12 +114,22 @@ def process_pdf(bucket: str, key: str, vlm_toc: bool) -> None:
         point_id(doc_id=doc_id, chunk_index=i) for i in range(len(sub_sections))
     ]
     payload_points = [
-        {"doc_id": doc_id, "s3_key": key, **d.metadata} for d in sub_sections
+        {
+            "doc_id": doc_id,
+            "s3_key": key,
+            "access_group": "physician",
+            "text": d.page_content,
+            **d.metadata,
+        }
+        for d in sub_sections
     ]
 
     logging.info("Upload to VectorDB")
     vectordb_client.upload_collection(
-        vectors=embeddings, payload=payload_points, ids=point_ids
+        vectors=embeddings,
+        texts=[d.page_content for d in sub_sections],
+        payload=payload_points,
+        ids=point_ids,
     )
 
 

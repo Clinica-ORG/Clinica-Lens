@@ -184,8 +184,8 @@ def extract_pdf_title_llm(llm, docs: list[Document], max_page_check: int = 5) ->
     return title
 
 
-def add_metadata_to_docs(metadata: dict, docs: list[Document]) -> list[Document]:
+def add_metadata_to_docs(metadata: list[dict], docs: list[Document]) -> list[Document]:
     """Add the title of the document to the metadata of each page"""
-    for doc in docs:
-        doc.metadata.update(metadata)
+    for doc, meta in zip(docs, metadata):
+        doc.metadata.update(meta)
     return docs
