@@ -79,7 +79,10 @@ def run_turn(token: str, question: str, thread_id: str):
                         line = f"🔧 **{data.get('name', '')}**"
                         status.update(label=f"Running {data.get('name', '')}…")
                     else:
-                        line = f"✅ {data.get('name', '')} → {data.get('status', '')}"
+                        icon = "✅" if data.get("status") == "success" else "❌"
+                        line = (
+                            f"{icon} {data.get('name', '')} → {data.get('status', '')}"
+                        )
                     steps.append(line)
                     status.write(line)
 

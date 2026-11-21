@@ -15,9 +15,9 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from app.api.v1.routers import api_router
 from app.core.config import get_settings
 from app.core.logging import get_logger, setup_logging
-from app.db import database
-from app.tools.db import get_db_tools
-from app.services import LLMService, AgentMiddlewareService, build_agent
+from app.db import database, vector_database
+from app.tools import get_db_tools, get_retrieval_tools
+from app.services import LLMService, AgentMiddlewareService, build_agent, load_aws_keys
 from app.middleware.error_handler import register_exception_handlers
 from app.middleware.logging_middleware import AccessLogMiddleware
 from app.middleware.request_tracing import RequestTracingMiddleware
@@ -47,7 +47,8 @@ async def lifespan(app: FastAPI):
         ):
             # init tools
             db_tools = get_db_tools()
-            TOOLS = db_tools
+            vectordb_tools = get_retrieval_tools()
+            TOOLS = db_tools + vectordb_tools
             # init llm
             llm_client = LLMService(
                 model=settings.LLM_MODEL, api_key=settings.OPENAI_API_KEY, tools=TOOLS
@@ -73,6 +74,20 @@ async def lifespan(app: FastAPI):
             # observation framework
             langfuse_client = get_client()
             app.state.obs_client = langfuse_client
+
+            # vector database
+            aws_keys = load_aws_keys(
+                qdrant_url=settings.VECTORDB_ENDPOINT_SECRET_NAME,
+                qdrant_api_key=settings.VECTORDB_API_KEY_SECRET_NAME,
+            )
+            vector_database.init_qdrant_client(
+                url=aws_keys.qdrant_url.get_secret_value(),
+                api_key=aws_keys.qdrant_api_key.get_secret_value(),
+            )
+            vector_database.init_embedder(
+                api_key=settings.OPENAI_API_KEY,
+                model_name=settings.OPENAI_EMB_MODEL_NAME,
+            )
 
             app.state.pipeline_in_flight = 0
             app.state.running = {}

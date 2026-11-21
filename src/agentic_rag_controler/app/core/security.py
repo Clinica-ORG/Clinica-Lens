@@ -45,7 +45,7 @@ def decode_access_token(token: str) -> User:
 
 async def authenticate(user_name: str, password: str) -> dict | None:
     rows = await fetch_readonly(
-        "SELECT id, user_name, hashed_password, role FROM clinical_conversations.users WHERE user_name = $1",
+        "SELECT id, user_name, hashed_password, user_group FROM clinical_conversations.users WHERE user_name = $1",
         user_name,
     )
     user = rows[0] if rows else None
@@ -61,8 +61,9 @@ async def authenticate(user_name: str, password: str) -> dict | None:
 
     print(user)
 
-    return User(user_id=str(user["id"]), name=user["user_name"], role=user["role"])
-    # return {"id": user["id"], "user_name": user["user_name"], "role": user["role"]}
+    return User(
+        user_id=str(user["id"]), name=user["user_name"], group=user["user_group"]
+    )
 
 
 async def current_user(
@@ -79,13 +80,15 @@ async def current_user(
         raise unauthorized from None
 
     rows = await fetch_readonly(
-        "SELECT id, user_name, role FROM clinical_conversations.users WHERE user_name = $1",
+        "SELECT id, user_name, user_group FROM clinical_conversations.users WHERE user_name = $1",
         user.name,
     )
     user = rows[0] if rows else None
     if user is None:  # account deleted since login
         raise unauthorized
-    return User(user_id=str(user["id"]), name=user["user_name"], role=user["role"])
+    return User(
+        user_id=str(user["id"]), name=user["user_name"], group=user["user_group"]
+    )
 
 
 CurrentUser = Annotated[User, Depends(current_user)]

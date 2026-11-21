@@ -12,8 +12,12 @@ asyncpg
 psycopg[binary,pool]
 sqlglot
 argon2-cffi==25.1.0
+# vector db
+qdrant-client==1.19.1
 # Auth
 PyJWT==2.15.1
+# AWS
+boto3==1.43.112
 # pack langchain
 langchain==1.4.7
 langgraph==1.2.12
