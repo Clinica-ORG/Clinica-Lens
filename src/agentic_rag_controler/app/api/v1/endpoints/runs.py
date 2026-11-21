@@ -40,13 +40,14 @@ async def create_run(
     request_id = getattr(request.state, "request_id", None)
     payload = {"messages": [{"role": "user", "content": body.message}]}
     async for event in run_events(
-        agent,
-        running,
-        user.user_id,
-        thread.thread_id,
-        request_id,
-        payload,
-        get_settings().RUN_TIMEOUT_S,
+        agent=agent,
+        running=running,
+        user_id=user.user_id,
+        user_group=user.group,
+        thread_id=thread.thread_id,
+        request_id=request_id,
+        payload=payload,
+        timeout_s=get_settings().RUN_TIMEOUT_S,
         obs=obs,
     ):
         yield event

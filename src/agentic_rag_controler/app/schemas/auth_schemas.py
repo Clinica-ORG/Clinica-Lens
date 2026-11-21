@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, SecretStr
 
 
 class AuthResponse(BaseModel):
@@ -9,10 +9,15 @@ class AuthResponse(BaseModel):
 class User(BaseModel):
     user_id: str
     name: str
-    role: str | None = None
+    group: str | None = None
 
 
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
     expires_in: int  # seconds
+
+
+class AWS_Keys(BaseModel):
+    qdrant_url: SecretStr
+    qdrant_api_key: SecretStr

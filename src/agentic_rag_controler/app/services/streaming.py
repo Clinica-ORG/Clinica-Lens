@@ -74,6 +74,7 @@ async def run_events(
     agent,
     running: dict[str, str],
     user_id: str,
+    user_group: str,
     thread_id: str,
     request_id: str,
     payload,
@@ -82,7 +83,13 @@ async def run_events(
 ) -> AsyncIterator[ServerSentEvent]:
     """Stream one run. `running` maps thread_id -> run_id so a thread never has two runs at once."""
     run_id, seq, started = uuid.uuid4().hex[:8], 0, time.monotonic()
-    config = {"configurable": {"thread_id": thread_id}, "recursion_limit": 40}
+    config = {
+        "configurable": {
+            "thread_id": thread_id,
+            "access_groups": [user_group],
+        },
+        "recursion_limit": 40,
+    }
     if obs:
         config |= {
             "callbacks": [CallbackHandler()],

@@ -1,7 +1,12 @@
+from pathlib import Path
 from langchain.agents import create_agent
 from langchain.agents.middleware import ToolCallLimitMiddleware, ToolRetryMiddleware
 
-from app.services.prompts import SYSTEM_PROMPT
+SYSTEM_PROMPT = (
+    (Path(__file__).parents[1] / "agents" / "prompts" / "clinical_assistant.md")
+    .read_text()
+    .strip()
+)
 
 
 class AgentMiddlewareService:

@@ -2,7 +2,7 @@ import boto3
 from datalab_sdk import DatalabClient, ConvertOptions
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from qdrant_client import QdrantClient, models
-from qdrant_client.models import Distance, VectorParams
+from qdrant_client.models import Distance, VectorParams, SparseVectorParams
 
 from config import get_settings
 
@@ -10,6 +10,17 @@ OPENAI_EMBEDDING_MODEL_DIMENSION = {
     "text-embedding-3-small": 1536,
     "text-embedding-3-large": 3072,
 }
+DENSE, SPARSE = "dense", "bm25"
+BM25_OPTIONS = {
+    "ascii_folding": True,
+    "stopwords": {"custom": []},
+    "stemmer": {"type": "none"},
+}
+
+
+def bm25(text: str) -> models.Document:
+    """Text for the server-side BM25 model; Qdrant turns it into a sparse vector."""
+    return models.Document(text=text, model="qdrant/bm25", options=BM25_OPTIONS)
 
 
 class SecretManager:
@@ -138,35 +149,56 @@ class VectorDBClient:
         self.kwargs = kwargs
 
     def ensure_collection(self):
-        needed_keys = ["collection_name", "vector_size", "distance"]
+        needed_keys = ["collection_name", "vector_size", "distance", "bm25"]
         for key in needed_keys:
             if key not in self.kwargs:
                 raise ValueError(f"Missing required argument: {key}")
         if not self.client.collection_exists(self.kwargs["collection_name"]):
             self.client.create_collection(
                 collection_name=self.kwargs["collection_name"],
-                vectors_config=VectorParams(
-                    size=self.kwargs["vector_size"], distance=self.kwargs["distance"]
-                ),
+                vectors_config={
+                    DENSE: VectorParams(
+                        size=self.kwargs["vector_size"],
+                        distance=self.kwargs["distance"],
+                    )
+                },
+                sparse_vectors_config={
+                    SPARSE: SparseVectorParams(modifier=models.Modifier.IDF)
+                }
+                if self.kwargs.get("bm25", False)
+                else None,
             )
-        for field in ("doc_id", "s3_key"):
+        for field, schema in [
+            ("doc_id", models.PayloadSchemaType.KEYWORD),
+            ("access_group", models.PayloadSchemaType.KEYWORD),
+            # ("effective_date", models.PayloadSchemaType.DATETIME),
+            ("s3_key", models.PayloadSchemaType.KEYWORD),
+        ]:
             self.client.create_payload_index(
-                self.kwargs["collection_name"], field, models.PayloadSchemaType.KEYWORD
+                self.kwargs["collection_name"], field, field_schema=schema
             )
 
     def upload_collection(
-        self, vectors: list[list[float]], payload: list[dict], ids: list[str]
+        self,
+        vectors: list[list[float]],
+        texts: list[str],
+        payload: list[dict],
+        ids: list[str],
     ):
         """
         Upload a collection of vectors to the vector database.
         Args:
             vectors (list[list[float]]): A list of embedding vectors.
+            texts (list[str]): A list of text snippets corresponding to each vector.
             payload (list[dict]): A list of metadata dictionaries corresponding to each vector.
             ids (list[str]): A list of unique identifiers for each vector.
         """
+        vectors_to_upload = {DENSE: vectors}
+        if self.kwargs.get("bm25", False):
+            vectors_to_upload[SPARSE] = [bm25(text) for text in texts]
         self.client.upsert(
             collection_name=self.kwargs["collection_name"],
-            points=models.Batch(ids=ids, payloads=payload, vectors=vectors),
+            points=models.Batch(ids=ids, payloads=payload, vectors=vectors_to_upload),
         )
 
     def delete_points(self, key: str) -> None:
@@ -205,10 +237,11 @@ llm_client = LLMClient(
     api_key=sm.get_secret(settings.openai_api_key_secret_name),
 )
 vectordb_client = VectorDBClient(
-    endpoint=settings.vectordb_endpoint,
+    endpoint=sm.get_secret(settings.vectordb_endpoint_secret_name),
     api_key=sm.get_secret(settings.vectordb_api_key_secret_name),
     collection_name="clinica_lens_collection",
     vector_size=embeddings_client.get_embedding_dimension,
     distance=Distance.COSINE,
+    bm25=settings.vectordb_bm25,
 )
 vectordb_client.ensure_collection()

@@ -34,8 +34,19 @@ class Settings(BaseSettings):
     LLM_MODEL: str = "openai:gpt-6-luna"
     OPENAI_API_KEY: str = ""
     RUN_TIMEOUT_S: int = 180  # a brief run normally takes 20-60 s
+    OPENAI_EMB_MODEL_NAME: Literal[
+        "text-embedding-3-small", "text-embedding-3-large"
+    ] = "text-embedding-3-small"
     # POSGRES DB
     PG_DB_URL: str = ""
+    # VECTOR DB
+    VECTORDB_API_KEY_SECRET_NAME: str = "/clinica-lens/qdrant-api-key"
+    VECTORDB_ENDPOINT_SECRET_NAME: str = "/clinica-lens/qdrant-endpoint"
+    VECTORDB_COLLECTION_NAME: str = "clinica_lens_collection"
+    VECTORDB_DENSE_NAME: str = "dense"
+    VECTORDB_SPARSE_NAME: str = "bm25"
+    VECTORDB_PREFETCH_LIMIT: int = 20
+    VECTORDB_TOP_K: int = 8
     # Obs
     ## Langsmith
     TRACING_FRAMEWORK: Literal["langsmith", "langfuse"] = "langfuse"
