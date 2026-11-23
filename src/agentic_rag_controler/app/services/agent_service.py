@@ -2,6 +2,8 @@ from pathlib import Path
 from langchain.agents import create_agent
 from langchain.agents.middleware import ToolCallLimitMiddleware, ToolRetryMiddleware
 
+from app.core.guards import DEFENSE_MIDDLEWARE
+
 SYSTEM_PROMPT = (
     (Path(__file__).parents[1] / "agents" / "prompts" / "clinical_assistant.md")
     .read_text()
@@ -20,7 +22,7 @@ class AgentMiddlewareService:
             ToolRetryMiddleware(max_retries=max_retries),
             ToolCallLimitMiddleware(run_limit=run_limit),
         ]
-        return list_middleware
+        return list_middleware + DEFENSE_MIDDLEWARE
 
 
 def build_agent(model, tools, middleware, checkpointer=None, store=None):
