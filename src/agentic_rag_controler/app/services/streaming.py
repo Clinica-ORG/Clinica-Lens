@@ -41,6 +41,11 @@ def to_events(mode: str, chunk) -> list[tuple[str, dict]]:
         return [("progress", chunk)]
     events = []  # updates: {node name: what the node returned}
     for node, update in chunk.items():
+        if (
+            node in ["scope_guard.before_agent", "output_rail.after_agent"]
+            and update is not None
+        ):
+            return [("token", {"text": update["messages"][-1].content})]
         if node == "__interrupt__":
             events.append(("interrupt", {"id": update[0].id, **update[0].value}))
             continue

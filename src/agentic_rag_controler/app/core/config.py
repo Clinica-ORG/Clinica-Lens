@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     SERVICE_NAME: str = "agent-rag-service"
     # LLM
     LLM_MODEL: str = "openai:gpt-6-luna"
+    DECISION_MODEL: str = "gpt-6-luna"
     OPENAI_API_KEY: str = ""
     RUN_TIMEOUT_S: int = 180  # a brief run normally takes 20-60 s
     OPENAI_EMB_MODEL_NAME: Literal[
